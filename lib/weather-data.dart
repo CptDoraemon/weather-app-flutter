@@ -22,8 +22,13 @@ class WeatherData {
       this.hourlyFahrenheit.add(WeatherDataObject.fahrenheit(hourly[i]));
     }
     for (int i=0; i<daily.length; i++) {
-      this.dailyCelsius.add(WeatherDataObject.celsius(daily[i]));
-      this.dailyFahrenheit.add(WeatherDataObject.fahrenheit(daily[i]));
+      WeatherDataObject celsius = WeatherDataObject.celsius(daily[i]);
+      celsius.timeString = '';
+      WeatherDataObject fahrenheit = WeatherDataObject.fahrenheit(daily[i]);
+      fahrenheit.timeString = '';
+
+      this.dailyCelsius.add(celsius);
+      this.dailyFahrenheit.add(fahrenheit);
     }
   }
 
@@ -60,8 +65,7 @@ class WeatherDataObject {
 
   String weekdayLong;
   String weekdayShort;
-  String hour;
-  String minute;
+  String timeString;
   int time;
 
 
@@ -70,8 +74,8 @@ class WeatherDataObject {
       : summary = json['summary'],
         icon = json['icon'],
         temperature = json['temperature'] == null ? json['temperatureHigh'].round() : json['temperature'].round(),
-        temperatureHigh = json['temperatureHigh'] == null ? 0 : fToC(json['temperatureHigh'].round()),
-        temperatureLow = json['temperatureLow'] == null ? 0 : fToC(json['temperatureLow'].round()),
+        temperatureHigh = json['temperatureHigh'] == null ? 0 : json['temperatureHigh'].round(),
+        temperatureLow = json['temperatureLow'] == null ? 0 : json['temperatureLow'].round(),
         precipitation = (json['precipProbability'] * 100).round(),
         windBearing = json['windBearing'].round(),
         windSpeed = json['windSpeed'].round(),
@@ -80,25 +84,12 @@ class WeatherDataObject {
     DateTime date = DateTime.fromMillisecondsSinceEpoch(time);
     weekdayLong = weekdayLongList[date.weekday - 1];
     weekdayShort = weekdayShortList[date.weekday - 1];
-    hour = date.hour < 10 ? '0${date.hour}' : date.hour.toString();
-    minute = date.minute < 10 ? '0${date.minute}' : date.minute.toString();
+
+    String hour = date.hour < 10 ? '0${date.hour}' : date.hour.toString();
+    String minute = date.minute < 10 ? '0${date.minute}' : date.minute.toString();
+    timeString = '$hour:$minute';
   }
 
-//  WeatherDataObject.celsius(Map<String, dynamic> json)
-//      : summary = json['summary'],
-//        icon = json['icon'],
-//        weekdayLong = weekdayLongList[DateTime(json['time']).weekday - 1],
-//        weekdayShort = weekdayShortList[DateTime(json['time']).weekday - 1],
-//        hour = DateTime(json['time']).hour < 10 ? '0${DateTime(json['time']).hour}' : DateTime(json['time']).hour.toString(),
-//        minute = DateTime(json['time']).minute < 10 ? '0${DateTime(json['time']).minute}' : DateTime(json['time']).minute.toString(),
-//        temperature = json['temperature'] == null ? fToC(json['temperatureHigh']) : fToC(json['temperature']),
-//        temperatureHigh = json['temperatureHigh'] == null ? 0 : fToC(json['temperatureHigh'].round()),
-//        temperatureLow = json['temperatureLow'] == null ? 0 : fToC(json['temperatureLow'].round()),
-//        precipitation = (json['precipProbability'] * 100).round(),
-//        windBearing = json['windBearing'].round(),
-//        windSpeed = mphToKmh(json['windSpeed']),
-//        humidity = (json['humidity'] * 100).round(),
-//        time = json['time'] * 1000;
   WeatherDataObject.celsius(Map<String, dynamic> json)
       : summary = json['summary'],
         icon = json['icon'],
@@ -113,8 +104,9 @@ class WeatherDataObject {
     DateTime date = DateTime.fromMillisecondsSinceEpoch(time);
     weekdayLong = weekdayLongList[date.weekday - 1];
     weekdayShort = weekdayShortList[date.weekday - 1];
-    hour = date.hour < 10 ? '0${date.hour}' : date.hour.toString();
-    minute = date.minute < 10 ? '0${date.minute}' : date.minute.toString();
+    String hour = date.hour < 10 ? '0${date.hour}' : date.hour.toString();
+    String minute = date.minute < 10 ? '0${date.minute}' : date.minute.toString();
+    timeString = '$hour:$minute';
   }
 
   static int fToC(f) {

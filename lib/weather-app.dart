@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+
 import './weather-data.dart';
-import "package:charcode/charcode.dart";
+import './hourly-chart-canvas.dart';
 
 export 'weather-app.dart';
 
@@ -15,9 +17,16 @@ class WeatherApp extends StatefulWidget {
 
 class _WeatherAppState extends State<WeatherApp>{
   bool _isCelsius = true;
+  int _hourOffset = 0;
+  static int timeOrigin;
   List<dynamic> selectedDataPath; // property chain, int for list, string for map
   final WeatherData weatherData;
   final String locationDescription;
+
+  _WeatherAppState (this.weatherData, this.locationDescription)
+      : selectedDataPath = ['currently'] {
+    timeOrigin = weatherData.celsius()['currently'].time;
+  }
 
   // only the selected data obj
   WeatherDataObject getSelectedData() {
@@ -25,6 +34,7 @@ class _WeatherAppState extends State<WeatherApp>{
     for (int i=0; i<selectedDataPath.length; i++) {
       object = object[selectedDataPath[i]];
     }
+    // no time needed for daily data
     return object;
   }
 
@@ -33,12 +43,15 @@ class _WeatherAppState extends State<WeatherApp>{
     return _isCelsius ? weatherData.celsius() : weatherData.fahrenheit();
   }
 
-  _WeatherAppState (this.weatherData, this.locationDescription)
-    : selectedDataPath = ['currently'];
-
-  void changeSelectedData(List<String> newSelectedDataPath) {
+  void changeSelectedData(List<dynamic> newSelectedDataPath) {
     setState(() {
       selectedDataPath = newSelectedDataPath;
+      // offset hourly chart
+      if (newSelectedDataPath[0] == 'daily') {
+        int targetTime = weatherData.celsius()['daily'][newSelectedDataPath[1]].time;
+        int hourDifference = ((targetTime - timeOrigin) / 1000 / 60 / 60).round();
+        _hourOffset = hourDifference > 0 ? hourDifference : 0;
+      }
     });
   }
 
@@ -55,8 +68,8 @@ class _WeatherAppState extends State<WeatherApp>{
           children: [
             Header(getSelectedData(), locationDescription),
             Summary(getSelectedData(), toggleUnit, _isCelsius),
-            HourlyChart(),
-            DailyChart(getUnitConvertedData()['daily'])
+            HourlyChart(getUnitConvertedData()['hourly'], _hourOffset),
+            DailyChart(getUnitConvertedData()['daily'], changeSelectedData)
           ],
         )
     );
@@ -71,11 +84,11 @@ class Header extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: 24.0),
+      padding: EdgeInsets.symmetric(vertical: 24.0, horizontal: 20.0),
       child: Column(
         children: [
-          Text(locationDescription, style: TextStyle(fontSize: 24.0)),
-          Text('${selectedData.weekdayLong} ${selectedData.hour}:${selectedData.minute}'),
+          Text(locationDescription, style: TextStyle(fontSize: 24.0), textAlign: TextAlign.center,),
+          Text('${selectedData.weekdayLong} ${selectedData.timeString}', style: TextStyle(fontWeight: FontWeight.bold)),
           Text(selectedData.summary)
         ],
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -152,15 +165,33 @@ class Summary extends StatelessWidget {
   }
 }
 class HourlyChart extends StatelessWidget {
+  final List<WeatherDataObject> hourlyDataList;
+  final int _hourOffset;
+  HourlyChart(this.hourlyDataList, this._hourOffset);
+
 
   @override
   Widget build(BuildContext context) {
-    return Text('HourlyChart');
+    double horizontalPadding = 10.0;
+    double canvasWidth = MediaQuery.of(context).size.width - 2 * horizontalPadding;
+    double hourWidth = canvasWidth / 24;
+
+    return Container(
+        height: 100.0,
+        padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+        child: Transform.translate(
+          offset: Offset(-hourWidth * _hourOffset, 0),
+          child: CustomPaint(
+            painter: PrecipitationPainter(hourlyDataList),
+          ),
+        )
+      );
   }
 }
 class DailyChart extends StatelessWidget {
   final List<WeatherDataObject> dailyDataList;
-  DailyChart(this.dailyDataList);
+  final Function selectedDataSwitcher;
+  DailyChart(this.dailyDataList, this.selectedDataSwitcher);
 
   Widget temperatureHighNLow(String temperatureHigh, String temperatureLow) {
     return Row(
@@ -170,6 +201,13 @@ class DailyChart extends StatelessWidget {
         Text(' '),
         Text('$temperatureLow\u00B0', style: TextStyle(color: Colors.grey),),
       ],
+    );
+  }
+  Widget weatherIcon(String iconName) {
+    return SvgPicture.asset(
+        'assets/weather-icons/$iconName.svg',
+        color: Colors.red,
+        semanticsLabel: iconName
     );
   }
   Widget dayGraphColumnTextItemContainer(Widget wrappedWidget) {
@@ -185,29 +223,35 @@ class DailyChart extends StatelessWidget {
       child: wrappedWidget,
     );
   }
-  Widget dayGraphWidget(WeatherDataObject dailyDataObject) {
-    return  Container(
-      width: 80.0,
+  Widget dayGraphWidget(WeatherDataObject dailyDataObject, int index) {
+    List<dynamic> pathList = ['daily', index];
+    return ButtonTheme(
+      minWidth: 5.0,
+      height: 80.0,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30.0)),
+      child: FlatButton(
+        onPressed: () => selectedDataSwitcher(pathList),
         padding: EdgeInsets.all(10.0),
         child: Column(
           children: [
             dayGraphColumnTextItemContainer(Text(dailyDataObject.weekdayShort)),
-            dayGraphColumnImageItemContainer(Text(dailyDataObject.icon)),
+            dayGraphColumnImageItemContainer(weatherIcon(dailyDataObject.icon)),
             dayGraphColumnTextItemContainer(temperatureHighNLow(dailyDataObject.temperatureHigh.toString(), dailyDataObject.temperatureLow.toString())),
           ],
         )
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 200.0,
+      height: 150.0,
       child: ListView.builder(
         itemCount: dailyDataList.length,
         scrollDirection: Axis.horizontal,
         itemBuilder: (context, index) {
-          return dayGraphWidget(dailyDataList[index]);
+          return dayGraphWidget(dailyDataList[index], index);
         },
       ),
     );
