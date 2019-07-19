@@ -4,6 +4,7 @@ import 'package:location/location.dart';
 import 'dart:convert';
 
 import './weather-data.dart';
+import './weather-app.dart';
 
 void main() => runApp(MyApp());
 
@@ -31,6 +32,7 @@ class _LoaderState extends State<Loader> {
   String _errorMessage;
   Map<String, double> _currentLocation;
   WeatherData _weatherData;
+  String _locationDescription;
 
   Widget locatingScene() {
     return Scaffold(
@@ -79,14 +81,37 @@ class _LoaderState extends State<Loader> {
   }
 
   void _getWeatherData(Map<String, double> location) async {
-    String url = 'https://www.xiaoxihome.com/api/weather';
-    final body = jsonEncode({
-      'latitude': location['latitude'].toString(),
-      'longitude': location['longitude'].toString()
-    });
-    final res = await http.post(url, headers: {"Content-Type": "application/json"}, body: body);
-    Map<String, dynamic> rawData = jsonDecode(res.body)['data'];
-    _weatherData = WeatherData(rawData);
+    try {
+      String weatherAPI = 'https://www.xiaoxihome.com/api/weather';
+      String locationDescriptionAPI = 'https://www.xiaoxihome.com/api/reversegeocoding';
+      final body = jsonEncode({
+        'latitude': location['latitude'].toString(),
+        'longitude': location['longitude'].toString()
+      });
+
+      final weatherRes = await http.post(weatherAPI, headers: {"Content-Type": "application/json"}, body: body);
+      final locationDescriptionRes = await http.post(locationDescriptionAPI, headers: {"Content-Type": "application/json"}, body: body);
+
+      print(weatherRes.body);
+      Map<String, dynamic> weatherResJson = jsonDecode(weatherRes.body);
+      Map<String, dynamic> locationDescriptionResJson = jsonDecode(locationDescriptionRes.body);
+
+      if (weatherResJson['status'] == 'success' && locationDescriptionResJson['status'] == 'success') {
+        _weatherData = WeatherData(weatherResJson['data']);
+        _locationDescription = locationDescriptionResJson['data'];
+        setState(() {
+          _isWeatherDataRetrieved = true;
+        });
+      } else {
+        _isError = true;
+        _errorMessage = 'Error occured when getting weather data';
+      }
+    } catch (e) {
+      _isError = true;
+      _errorMessage = 'Error occured when getting weather data';
+      throw(e);
+    }
+
   }
 
   @override
@@ -101,18 +126,7 @@ class _LoaderState extends State<Loader> {
       !_isLocated ? locatingScene() :
       !_isWeatherDataRetrieved ? retrievingWeatherDataScene() :
       _isError ? errorScene() :
-      WeatherApp();
-  }
-}
-
-class WeatherApp extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-        body: Center(
-          child: Text('loaded'),
-        )
-    );
+      WeatherApp(_weatherData, _locationDescription);
   }
 }
 
