@@ -49,10 +49,8 @@ class _WeatherAppState extends State<WeatherApp>{
       selectedDataPath = newSelectedDataPath;
       // offset hourly chart
       if (newSelectedDataPath[0] == 'daily') {
-        int targetTime = weatherData.celsius()['daily'][newSelectedDataPath[1]].time;
-        int hourDifference = ((targetTime - timeOrigin) / 1000 / 60 / 60).ceil();
-        _hourOffset = hourDifference > 0 ? hourDifference : 0;
-        print((targetTime - timeOrigin) / 1000 / 60 / 60);
+      int timeOriginHour = DateTime.fromMillisecondsSinceEpoch(timeOrigin).hour == 0 ? 24 : DateTime.fromMillisecondsSinceEpoch(timeOrigin).hour;
+      _hourOffset = 24 - timeOriginHour + newSelectedDataPath[1] * 24;
       }
     });
   }
@@ -70,7 +68,7 @@ class _WeatherAppState extends State<WeatherApp>{
           children: [
             Header(getSelectedData(), locationDescription),
             Summary(getSelectedData(), toggleUnit, _isCelsius),
-            HourlyChart(getUnitConvertedData()['hourly'], _hourOffset),
+            HourlyChart(getUnitConvertedData()['hourly'], _hourOffset, _isCelsius),
             DailyChart(getUnitConvertedData()['daily'], changeSelectedData)
           ],
         )
@@ -170,7 +168,8 @@ class Summary extends StatelessWidget {
 class HourlyChart extends StatefulWidget {
   final List<WeatherDataObject> hourlyDataList;
   final int _hourOffset;
-  HourlyChart(this.hourlyDataList, this._hourOffset);
+  final bool _isCelsius;
+  HourlyChart(this.hourlyDataList, this._hourOffset, this._isCelsius);
 
   @override
   createState() => _HourlyChartState();
@@ -183,14 +182,14 @@ class _HourlyChartState extends State<HourlyChart> {
       _chartState = state;
     });
   }
-  Widget chartSelectorButton(int index, Widget icon) {
+  Widget chartSelectorButton(int index, Widget icon, MaterialColor activeColor) {
     return ButtonTheme(
       minWidth: 20.0,
       height: 20.0,
       child: IconButton(
         onPressed: () => setChartState(index),
         icon: icon,
-        color: index == _chartState ? Colors.grey : Colors.grey[300],
+        color: index == _chartState ? activeColor : Colors.grey[300],
         iconSize: 20.0,
       ),
     );
@@ -200,9 +199,9 @@ class _HourlyChartState extends State<HourlyChart> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          chartSelectorButton(0, Icon(FontAwesomeIcons.thermometerThreeQuarters)),
-          chartSelectorButton(1, Icon(FontAwesomeIcons.tint)),
-          chartSelectorButton(2, Icon(FontAwesomeIcons.wind)),
+          chartSelectorButton(0, Icon(FontAwesomeIcons.thermometerThreeQuarters), Colors.orange),
+          chartSelectorButton(1, Icon(FontAwesomeIcons.tint), Colors.blue),
+          chartSelectorButton(2, Icon(FontAwesomeIcons.wind), Colors.green),
         ],
       ),
     );
@@ -220,14 +219,18 @@ class _HourlyChartState extends State<HourlyChart> {
   }
   Widget temperatureChart() {
     return CustomPaint(
-      painter: PrecipitationPainter(widget.hourlyDataList),
+      painter: TemperaturePainter(widget.hourlyDataList),
     );
   }
   Widget precipitationChart() {
-    return Text('Precipitation');
+    return CustomPaint(
+      painter: PrecipitationPainter(widget.hourlyDataList),
+    );
   }
   Widget windChart() {
-    return Text('Wind');
+    return CustomPaint(
+      painter: WindPainter(widget.hourlyDataList, widget._isCelsius),
+    );
   }
 
 
