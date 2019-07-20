@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 import './weather-data.dart';
 import './hourly-chart-canvas.dart';
@@ -49,8 +50,9 @@ class _WeatherAppState extends State<WeatherApp>{
       // offset hourly chart
       if (newSelectedDataPath[0] == 'daily') {
         int targetTime = weatherData.celsius()['daily'][newSelectedDataPath[1]].time;
-        int hourDifference = ((targetTime - timeOrigin) / 1000 / 60 / 60).round();
+        int hourDifference = ((targetTime - timeOrigin) / 1000 / 60 / 60).ceil();
         _hourOffset = hourDifference > 0 ? hourDifference : 0;
+        print((targetTime - timeOrigin) / 1000 / 60 / 60);
       }
     });
   }
@@ -164,10 +166,69 @@ class Summary extends StatelessWidget {
     );
   }
 }
-class HourlyChart extends StatelessWidget {
+
+class HourlyChart extends StatefulWidget {
   final List<WeatherDataObject> hourlyDataList;
   final int _hourOffset;
   HourlyChart(this.hourlyDataList, this._hourOffset);
+
+  @override
+  createState() => _HourlyChartState();
+}
+class _HourlyChartState extends State<HourlyChart> {
+  int _chartState = 0;
+
+  void setChartState(int state) {
+    setState(() {
+      _chartState = state;
+    });
+  }
+  Widget chartSelectorButton(int index, Widget icon) {
+    return ButtonTheme(
+      minWidth: 20.0,
+      height: 20.0,
+      child: IconButton(
+        onPressed: () => setChartState(index),
+        icon: icon,
+        color: index == _chartState ? Colors.grey : Colors.grey[300],
+        iconSize: 20.0,
+      ),
+    );
+  }
+  Widget chartSelector() {
+    return Container(
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          chartSelectorButton(0, Icon(FontAwesomeIcons.thermometerThreeQuarters)),
+          chartSelectorButton(1, Icon(FontAwesomeIcons.tint)),
+          chartSelectorButton(2, Icon(FontAwesomeIcons.wind)),
+        ],
+      ),
+    );
+  }
+  Widget chartGenerator(horizontalPadding, hourWidth, Widget wrappedChart) {
+    return Container(
+        height: 100.0,
+        width: double.infinity,
+        padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+        child: Transform.translate(
+          offset: Offset(-hourWidth * widget._hourOffset, 0),
+          child: wrappedChart,
+        )
+    );
+  }
+  Widget temperatureChart() {
+    return CustomPaint(
+      painter: PrecipitationPainter(widget.hourlyDataList),
+    );
+  }
+  Widget precipitationChart() {
+    return Text('Precipitation');
+  }
+  Widget windChart() {
+    return Text('Wind');
+  }
 
 
   @override
@@ -177,17 +238,18 @@ class HourlyChart extends StatelessWidget {
     double hourWidth = canvasWidth / 24;
 
     return Container(
-        height: 100.0,
-        padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-        child: Transform.translate(
-          offset: Offset(-hourWidth * _hourOffset, 0),
-          child: CustomPaint(
-            painter: PrecipitationPainter(hourlyDataList),
-          ),
-        )
-      );
+      child: Column(
+        children: [
+          chartSelector(),
+          _chartState == 0 ? chartGenerator(horizontalPadding, hourWidth, temperatureChart()) :
+          _chartState == 1 ? chartGenerator(horizontalPadding, hourWidth, precipitationChart()) :
+          chartGenerator(horizontalPadding, hourWidth, windChart()),
+        ],
+      ),
+    );
   }
 }
+
 class DailyChart extends StatelessWidget {
   final List<WeatherDataObject> dailyDataList;
   final Function selectedDataSwitcher;

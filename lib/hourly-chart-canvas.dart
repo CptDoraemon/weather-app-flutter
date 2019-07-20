@@ -86,6 +86,9 @@ class PrecipitationPainter extends CustomPainter {
       }
     }
   }
+
   @override
-  bool shouldRepaint(CustomPainter oldDelegate) => false;
+  bool shouldRepaint(CustomPainter oldDelegate) {
+    return true;
+  }
 }
