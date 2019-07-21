@@ -220,14 +220,15 @@ class _HourlyChartState extends State<HourlyChart> with TickerProviderStateMixin
     //
     final RenderBox referenceBox = context.findRenderObject();
     final Offset offset = referenceBox.globalToLocal(details.globalPosition);
-    final double threeHoursBlockWidth = (referenceBox.size.width - padding * 2) / 8;
+    final double hoursBlockWidth = (referenceBox.size.width - padding * 2) / 24;
     final double touchX = offset.dx - padding;
-    final int whichBlockTapped = touchX ~/ threeHoursBlockWidth;
-    // shift to left for better interactivity
-    final int whichBlockTappedShifted = ((touchX % threeHoursBlockWidth) > 0.5 * threeHoursBlockWidth) ? whichBlockTapped + 1 : whichBlockTapped;
+    final int whichBlockTapped = touchX ~/ hoursBlockWidth;
 
-    final whichHourTapped = widget._hourOffset + whichBlockTappedShifted * 3;
-    if (whichHourTapped <= 48) widget.changeSelectedData(['hourly', whichHourTapped]);
+    // actual hour tapped
+    final whichHourTapped = widget._hourOffset + whichBlockTapped; // actual hour
+    // shift to closest selectable hour
+    final whichHourTappedShifted = whichHourTapped % 3 < 1.5 ? (whichHourTapped ~/ 3) * 3 : (whichHourTapped ~/ 3 + 1) * 3;
+    if (whichHourTapped <= 48) widget.changeSelectedData(['hourly', whichHourTappedShifted]);
   }
 
   Widget chartSelectorButton(int index, Widget icon, MaterialColor activeColor) {
