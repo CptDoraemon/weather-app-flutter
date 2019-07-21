@@ -27,15 +27,46 @@ class MyChartDrawingTools {
       placeholderTextPainter.paint(canvas, Offset((24.0 * hourlyWidth) * i + startXFotPlaceholders, size.height * 0.5 - 12));
     }
   }
+
+  void drawLegends(Canvas canvas, String topLegendText, String bottomLegendText, double safeWidth, Offset topLegendPosition, Offset bottomLegendPosition, List<dynamic> selectedDataPath, int index) {
+    final bool isSelected = (selectedDataPath[0] == 'hourly' && selectedDataPath[1] == index) ? true : false;
+    // top data text,
+    final TextStyle topDataTextStyle = TextStyle(
+        color: isSelected ? Colors.black : Colors.grey,
+        fontWeight: FontWeight.bold,
+        fontSize: 8.0
+    );
+    final TextPainter topTextPainter = TextPainter(
+        text: TextSpan(text: topLegendText,
+            style: topDataTextStyle),
+        textAlign: TextAlign.justify,
+        textDirection: TextDirection.ltr
+    )
+      ..layout(maxWidth: safeWidth);
+    topTextPainter.paint(canvas, topLegendPosition);
+    // bottom time text
+    final TextStyle timeTextStyle = TextStyle(
+        color: Colors.grey,
+        fontSize: 8.0
+    );
+    final TextPainter bottomTextPainter = TextPainter(
+        text: TextSpan(text: bottomLegendText, style: timeTextStyle),
+        textAlign: TextAlign.justify,
+        textDirection: TextDirection.ltr
+    )
+      ..layout(maxWidth: safeWidth);
+    bottomTextPainter.paint(canvas, bottomLegendPosition);
+  }
 }
 
 class TemperaturePainter extends CustomPainter with MyChartDrawingTools{
   final List<WeatherDataObject> hourlyDataList;
+  final List<dynamic> selectedDataPath;
   int max = -999;
   int min = 999;
   int range;
 
-  TemperaturePainter(this.hourlyDataList) {
+  TemperaturePainter(this.hourlyDataList, this.selectedDataPath) {
     hourlyDataList.forEach((i) {
       if (i.temperature > max) max = i.temperature;
       if (i.temperature < min) min = i.temperature;
@@ -64,11 +95,12 @@ class TemperaturePainter extends CustomPainter with MyChartDrawingTools{
       ..color = Colors.orange[300];
     final double hourlyWidth = size.width / 24;
 
-    for (int i = 0; i < hourlyDataList.length - 1; i++) {
+    for (int i = 0; i < hourlyDataList.length; i++) {
+      bool isLast = i == hourlyDataList.length - 1;
       double thisY = getOffsetY(
           bottomReservedHeight, drawableHeight, range, min,
           hourlyDataList[i].temperature);
-      double nextY = getOffsetY(
+      double nextY = isLast ? thisY : getOffsetY(
           bottomReservedHeight, drawableHeight, range, min,
           hourlyDataList[i + 1].temperature);
       double thisX = i * hourlyWidth;
@@ -87,35 +119,16 @@ class TemperaturePainter extends CustomPainter with MyChartDrawingTools{
       canvas.drawPath(path, rectPaint);
       // text drawing on every third hour
       if (i % 3 == 0) {
-        // temperature text,
-        final TextStyle temperatureTextStyle = TextStyle(
-            color: Colors.grey,
-            fontWeight: FontWeight.bold,
-            fontSize: 12.0
+        drawLegends(
+          canvas,
+          hourlyDataList[i].temperature.toString(),
+          hourlyDataList[i].timeString,
+          3 * hourlyWidth,
+          Offset(thisX, thisY - topReservedHeight),
+          Offset(thisX, topReservedHeight + drawableHeight + 0.2 * bottomReservedHeight),
+          selectedDataPath,
+          i
         );
-        final TextPainter temperatureTextPainter = TextPainter(
-            text: TextSpan(text: hourlyDataList[i].temperature.toString(),
-                style: temperatureTextStyle),
-            textAlign: TextAlign.justify,
-            textDirection: TextDirection.ltr
-        )
-          ..layout(maxWidth: 24.0);
-        temperatureTextPainter.paint(
-            canvas, Offset(thisX, thisY - topReservedHeight));
-        // time text
-        final TextStyle timeTextStyle = TextStyle(
-            color: Colors.grey,
-            fontSize: 8.0
-        );
-        final TextPainter timeTextPainter = TextPainter(
-            text: TextSpan(
-                text: hourlyDataList[i].timeString, style: timeTextStyle),
-            textAlign: TextAlign.justify,
-            textDirection: TextDirection.ltr
-        )
-          ..layout(maxWidth: 30.0);
-        timeTextPainter.paint(canvas, Offset(thisX,
-            topReservedHeight + drawableHeight + 0.2 * bottomReservedHeight));
       }
     }
 
@@ -134,11 +147,12 @@ class TemperaturePainter extends CustomPainter with MyChartDrawingTools{
 
 class PrecipitationPainter extends CustomPainter with MyChartDrawingTools{
   final List<WeatherDataObject> hourlyDataList;
+  final List<dynamic> selectedDataPath;
   int max = 100;
   int min = 0;
   int range = 100;
 
-  PrecipitationPainter(this.hourlyDataList);
+  PrecipitationPainter(this.hourlyDataList, this.selectedDataPath);
 
   double getOffsetY(precipitation, drawableHeight, bottomReservedHeight) {
     return ((1 - precipitation / range)) * drawableHeight + bottomReservedHeight;
@@ -157,7 +171,8 @@ class PrecipitationPainter extends CustomPainter with MyChartDrawingTools{
       ..color = Colors.blue[300];
     final double hourlyWidth = size.width / 24;
 
-    for (int i=0; i<hourlyDataList.length - 1; i++) {
+    for (int i=0; i<hourlyDataList.length; i++) {
+      //bool isLast = i == hourlyDataList.length - 1;
       double thisY = getOffsetY(hourlyDataList[i].precipitation , drawableHeight, bottomReservedHeight);
       double nextY = thisY;
       double thisX = i * hourlyWidth;
@@ -176,31 +191,17 @@ class PrecipitationPainter extends CustomPainter with MyChartDrawingTools{
       canvas.drawPath(path, rectPaint);
       // text drawing on every third hour
       if (i % 3 == 0) {
-        // precipitation text,
-        final TextStyle temperatureTextStyle = TextStyle(
-            color: Colors.grey,
-            fontWeight: FontWeight.bold,
-            fontSize: 12.0
+        drawLegends(
+            canvas,
+            '${hourlyDataList[i].precipitation.toString()}%',
+            hourlyDataList[i].timeString,
+            3 * hourlyWidth,
+            Offset(thisX, thisY - topReservedHeight),
+            Offset(thisX,
+                topReservedHeight + drawableHeight + 0.2 * bottomReservedHeight),
+            selectedDataPath,
+            i
         );
-        final TextPainter temperatureTextPainter = TextPainter(
-            text: TextSpan(text: '${hourlyDataList[i].precipitation.toString()}%', style: temperatureTextStyle),
-            textAlign: TextAlign.justify,
-            textDirection: TextDirection.ltr
-        )
-          ..layout(maxWidth: 3 * hourlyWidth);
-        temperatureTextPainter.paint(canvas, Offset(thisX, thisY - topReservedHeight));
-        // time text
-        final TextStyle timeTextStyle = TextStyle(
-            color: Colors.grey,
-            fontSize: 8.0
-        );
-        final TextPainter timeTextPainter = TextPainter(
-            text: TextSpan(text: hourlyDataList[i].timeString, style: timeTextStyle),
-            textAlign: TextAlign.justify,
-            textDirection: TextDirection.ltr
-        )
-          ..layout(maxWidth: 30.0);
-        timeTextPainter.paint(canvas, Offset(thisX, topReservedHeight + drawableHeight + 0.2 * bottomReservedHeight));
       }
     }
 
@@ -222,11 +223,12 @@ class PrecipitationPainter extends CustomPainter with MyChartDrawingTools{
 class WindPainter extends CustomPainter with MyChartDrawingTools{
   final List<WeatherDataObject> hourlyDataList;
   final bool _isCelsius;
+  final List<dynamic> selectedDataPath;
   int max = -999;
   int min = 999;
   int range;
 
-  WindPainter(this.hourlyDataList, this._isCelsius) {
+  WindPainter(this.hourlyDataList, this._isCelsius, this.selectedDataPath) {
     hourlyDataList.forEach((i) {
       if (i.windSpeed > max) max = i.windSpeed;
       if (i.windSpeed < min) min = i.windSpeed;
@@ -248,37 +250,36 @@ class WindPainter extends CustomPainter with MyChartDrawingTools{
       ..color = Colors.green
       ..strokeWidth = 2.0;
 
-    for (int i=0; i<hourlyDataList.length - 1; i+=3) {
+    for (int i=0; i<hourlyDataList.length; i+=3) {
       // draw wind on every third hour
       double thisX = i * hourlyWidth;
       double thisY = 0.5 * size.height;
+      // legends
+      drawLegends(
+          canvas,
+          '${hourlyDataList[i].windSpeed.toString()} ${_isCelsius ? 'km/h' : 'mph'}',
+          hourlyDataList[i].timeString,
+          3 * hourlyWidth,
+          Offset(thisX, topReservedHeight),
+          Offset(thisX, topReservedHeight + drawableHeight + 0.2 * bottomReservedHeight),
+          selectedDataPath,
+          i
+      );
       // direction icon
-
-      // windSpeed text,
-      final TextStyle temperatureTextStyle = TextStyle(
-          color: Colors.grey,
-          fontWeight: FontWeight.bold,
-          fontSize: 8.0
-      );
-      final TextPainter temperatureTextPainter = TextPainter(
-          text: TextSpan(text: '${hourlyDataList[i].windSpeed.toString()} ${_isCelsius ? 'km/h' : 'mph'}', style: temperatureTextStyle),
-          textAlign: TextAlign.justify,
-          textDirection: TextDirection.ltr
-      )
-        ..layout(maxWidth: 3 * hourlyWidth);
-      temperatureTextPainter.paint(canvas, Offset(thisX, topReservedHeight));
-      // time text
-      final TextStyle timeTextStyle = TextStyle(
-          color: Colors.grey,
-          fontSize: 8.0
-      );
-      final TextPainter timeTextPainter = TextPainter(
-          text: TextSpan(text: hourlyDataList[i].timeString, style: timeTextStyle),
-          textAlign: TextAlign.justify,
-          textDirection: TextDirection.ltr
-      )
-        ..layout(maxWidth: 30.0);
-      timeTextPainter.paint(canvas, Offset(thisX, topReservedHeight + drawableHeight + 0.2 * bottomReservedHeight));
+//      canvas.save();
+//      canvas.rotate(hourlyDataList[i].windBearing * 1.0);
+//      final TextStyle directionStyle = TextStyle(
+//          color: Colors.green,
+//          fontSize: 12.0 + ((hourlyDataList[i].windSpeed - min) / range) * 12.0,
+//      );
+//      final TextPainter directionPainter = TextPainter(
+//        text: TextSpan(text: '>>>', style: directionStyle),
+//        textAlign: TextAlign.justify,
+//        textDirection: TextDirection.ltr,
+//      )
+//        ..layout(maxWidth: 3.0 * hourlyWidth);
+//      directionPainter.paint(canvas, Offset(thisX, topReservedHeight + 0.5 * drawableHeight));
+//      canvas.restore();
     }
 
     // placeholder text

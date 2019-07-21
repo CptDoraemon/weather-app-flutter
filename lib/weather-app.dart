@@ -20,6 +20,7 @@ class _WeatherAppState extends State<WeatherApp>{
   bool _isCelsius = true;
   int _hourOffset = 0;
   static int timeOrigin;
+  static int timeOriginHour;
   List<dynamic> selectedDataPath; // property chain, int for list, string for map
   final WeatherData weatherData;
   final String locationDescription;
@@ -27,6 +28,7 @@ class _WeatherAppState extends State<WeatherApp>{
   _WeatherAppState (this.weatherData, this.locationDescription)
       : selectedDataPath = ['currently'] {
     timeOrigin = weatherData.celsius()['currently'].time;
+    timeOriginHour = DateTime.fromMillisecondsSinceEpoch(timeOrigin).hour == 0 ? 24 : DateTime.fromMillisecondsSinceEpoch(timeOrigin).hour;
   }
 
   // only the selected data obj
@@ -49,9 +51,8 @@ class _WeatherAppState extends State<WeatherApp>{
       selectedDataPath = newSelectedDataPath;
       // offset hourly chart
       if (newSelectedDataPath[0] == 'daily') {
-      int timeOriginHour = DateTime.fromMillisecondsSinceEpoch(timeOrigin).hour == 0 ? 24 : DateTime.fromMillisecondsSinceEpoch(timeOrigin).hour;
-      _hourOffset = newSelectedDataPath[1] == 0 ? /* first day picked -> reset */
-          0 : 24 - timeOriginHour + (newSelectedDataPath[1] - 1) * 24;
+        // resetting if the first day graph is selected
+        _hourOffset = newSelectedDataPath[1] == 0 ? 0 : 24 - timeOriginHour + (newSelectedDataPath[1] - 1) * 24;
       }
     });
   }
@@ -69,7 +70,7 @@ class _WeatherAppState extends State<WeatherApp>{
           children: [
             Header(getSelectedData(), locationDescription),
             Summary(getSelectedData(), toggleUnit, _isCelsius),
-            HourlyChart(getUnitConvertedData()['hourly'], _hourOffset, _isCelsius),
+            HourlyChart(getUnitConvertedData()['hourly'], _hourOffset, _isCelsius, changeSelectedData, selectedDataPath),
             DailyChart(getUnitConvertedData()['daily'], changeSelectedData)
           ],
         )
@@ -170,19 +171,65 @@ class HourlyChart extends StatefulWidget {
   final List<WeatherDataObject> hourlyDataList;
   final int _hourOffset;
   final bool _isCelsius;
-  HourlyChart(this.hourlyDataList, this._hourOffset, this._isCelsius);
+  final Function changeSelectedData;
+  final List<dynamic> selectedDataPath;
+  HourlyChart(this.hourlyDataList, this._hourOffset, this._isCelsius, this.changeSelectedData, this.selectedDataPath);
 
   @override
   createState() => _HourlyChartState();
 }
-class _HourlyChartState extends State<HourlyChart> {
+class _HourlyChartState extends State<HourlyChart> with TickerProviderStateMixin{
   int _chartState = 0;
+//  // explicit animation
+//  double _lastHourOffset = 0;
+//  Animation<double> animation;
+//  AnimationController controller;
+//  @override
+//  void didUpdateWidget(Widget oldWidget) {
+//    super.didUpdateWidget(oldWidget);
+//    controller = AnimationController(duration: const Duration(seconds: 2), vsync: this);
+//    animation = Tween<double>(begin:_lastHourOffset, end: widget._hourOffset * 1.0).animate(controller)
+//    ..addListener(() {
+//      setState(() {
+//
+//      });
+//    })
+//    ..addStatusListener((state) {
+//      if (state == AnimationStatus.completed) {
+//        _lastHourOffset = widget._hourOffset * 1.0;
+//      }
+//    });
+//    controller.forward();
+//  }
+//  @override
+//  void dispose() {
+//    controller.dispose();
+//    super.dispose();
+//  }
+//
 
   void setChartState(int state) {
     setState(() {
       _chartState = state;
     });
   }
+
+  void canvasTapHandler(TapDownDetails details) {
+    // 10.0 padding is defined in canvas, not in widget
+    final double padding = 10.0;
+    //
+    final RenderBox referenceBox = context.findRenderObject();
+    final Offset offset = referenceBox.globalToLocal(details.globalPosition);
+    final double threeHoursBlockWidth = (referenceBox.size.width - padding * 2) / 8;
+    final double touchX = offset.dx - padding;
+    final int whichBlockTapped = touchX ~/ threeHoursBlockWidth;
+    // shift to left for better interactivity
+    final int whichBlockTappedShifted = ((touchX % threeHoursBlockWidth) > 0.5 * threeHoursBlockWidth) ? whichBlockTapped + 1 : whichBlockTapped;
+
+    final whichHourTapped = widget._hourOffset + whichBlockTappedShifted * 3;
+    if (whichHourTapped <= 48) widget.changeSelectedData(['hourly', whichHourTapped]);
+  }
+
   Widget chartSelectorButton(int index, Widget icon, MaterialColor activeColor) {
     return ButtonTheme(
       minWidth: 20.0,
@@ -207,30 +254,67 @@ class _HourlyChartState extends State<HourlyChart> {
       ),
     );
   }
-  Widget chartGenerator(horizontalPadding, hourWidth, Widget wrappedChart) {
+
+  Widget chartGenerator(double chartWidth, double chartHeight, double hourWidth, Widget wrappedChart, int valueKey) {
     return Container(
-        height: 100.0,
-        width: double.infinity,
-        padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-        child: Transform.translate(
-          offset: Offset(-hourWidth * widget._hourOffset, 0),
-          child: wrappedChart,
+        width: chartWidth,
+        height: chartHeight,
+        key: ValueKey(valueKey), // animatedSwitcher required
+        child: Stack( // AnimatedPositioned needs to be in stack
+          children: <Widget>[
+            AnimatedPositioned(
+              left: -hourWidth * widget._hourOffset,
+              child: Container(
+                child: wrappedChart,
+                width: chartWidth,
+                height: chartHeight,
+              ),
+              duration: Duration(milliseconds: 500),
+              curve: Curves.easeInOutCubic,
+            )
+          ],
         )
     );
   }
   Widget temperatureChart() {
     return CustomPaint(
-      painter: TemperaturePainter(widget.hourlyDataList),
+      painter: TemperaturePainter(widget.hourlyDataList, widget.selectedDataPath),
     );
   }
   Widget precipitationChart() {
     return CustomPaint(
-      painter: PrecipitationPainter(widget.hourlyDataList),
+      painter: PrecipitationPainter(widget.hourlyDataList, widget.selectedDataPath),
     );
   }
   Widget windChart() {
     return CustomPaint(
-      painter: WindPainter(widget.hourlyDataList, widget._isCelsius),
+      painter: WindPainter(widget.hourlyDataList, widget._isCelsius, widget.selectedDataPath),
+    );
+  }
+
+  Widget chartWithGestureDetector(double chartWidth, double chartHeight, double hourWidth) {
+    Widget gestureDetector = GestureDetector(
+      onTapDown: canvasTapHandler,
+      child: Container(
+        width: chartWidth,
+        height: chartHeight,
+        child: Text(' '),
+      ),
+    );
+    Widget chart = AnimatedSwitcher(
+      //
+      child:
+      _chartState == 0 ? chartGenerator(chartWidth, chartHeight, hourWidth, temperatureChart(), 0) :
+      _chartState == 1 ? chartGenerator(chartWidth, chartHeight, hourWidth, precipitationChart(), 1) :
+      chartGenerator(chartWidth, chartHeight, hourWidth, windChart(), 2),
+      //
+      duration: Duration(milliseconds: 300),
+      switchInCurve: Curves.easeIn,
+      switchOutCurve: Curves.easeOut,
+    );
+
+    return Stack(
+      children: <Widget>[chart, gestureDetector],
     );
   }
 
@@ -239,15 +323,14 @@ class _HourlyChartState extends State<HourlyChart> {
   Widget build(BuildContext context) {
     double horizontalPadding = 10.0;
     double canvasWidth = MediaQuery.of(context).size.width - 2 * horizontalPadding;
+    double canvasHeight = 100.0;
     double hourWidth = canvasWidth / 24;
 
     return Container(
       child: Column(
         children: [
           chartSelector(),
-          _chartState == 0 ? chartGenerator(horizontalPadding, hourWidth, temperatureChart()) :
-          _chartState == 1 ? chartGenerator(horizontalPadding, hourWidth, precipitationChart()) :
-          chartGenerator(horizontalPadding, hourWidth, windChart()),
+          chartWithGestureDetector(canvasWidth, canvasHeight, hourWidth)
         ],
       ),
     );
@@ -311,14 +394,19 @@ class DailyChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 150.0,
-      child: ListView.builder(
-        itemCount: dailyDataList.length,
-        scrollDirection: Axis.horizontal,
-        itemBuilder: (context, index) {
-          return dayGraphWidget(dailyDataList[index], index);
-        },
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 10.0),
+      child: Scrollbar(
+        child: Container(
+          height: 130.0,
+          child: ListView.builder(
+            itemCount: dailyDataList.length,
+            scrollDirection: Axis.horizontal,
+            itemBuilder: (context, index) {
+              return dayGraphWidget(dailyDataList[index], index);
+            },
+          ),
+        ),
       ),
     );
   }
