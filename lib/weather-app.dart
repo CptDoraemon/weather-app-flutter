@@ -50,7 +50,8 @@ class _WeatherAppState extends State<WeatherApp>{
       // offset hourly chart
       if (newSelectedDataPath[0] == 'daily') {
       int timeOriginHour = DateTime.fromMillisecondsSinceEpoch(timeOrigin).hour == 0 ? 24 : DateTime.fromMillisecondsSinceEpoch(timeOrigin).hour;
-      _hourOffset = 24 - timeOriginHour + newSelectedDataPath[1] * 24;
+      _hourOffset = newSelectedDataPath[1] == 0 ? /* first day picked -> reset */
+          0 : 24 - timeOriginHour + (newSelectedDataPath[1] - 1) * 24;
       }
     });
   }

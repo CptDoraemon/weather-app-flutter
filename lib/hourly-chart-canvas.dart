@@ -5,8 +5,31 @@ import './weather-data.dart';
 
 export 'hourly-chart-canvas.dart';
 
+// TODO: Abstract common methods
 
-class TemperaturePainter extends CustomPainter {
+class MyChartDrawingTools {
+  void drawPlaceholderText(Canvas canvas, Size size, List<WeatherDataObject> hourlyDataList, double hourlyWidth) {
+    final int firstDataHour = DateTime.fromMillisecondsSinceEpoch(hourlyDataList[0].time).hour == 0 ? 24 : DateTime.fromMillisecondsSinceEpoch(hourlyDataList[0].time).hour;
+    final double startXFotPlaceholders = (24 - firstDataHour) * hourlyWidth + 24.0 * hourlyWidth * 2; /* first 48 hours plus the rest of the last natural day */
+
+    for (int i=0; i<5; i++) {
+      final TextStyle placeholderTextStyle = TextStyle(
+        color: Colors.grey,
+        fontSize: 8.0,
+        fontWeight: FontWeight.bold,
+      );
+      final TextPainter placeholderTextPainter = TextPainter(
+        text: TextSpan(text: 'Hourly forecasts are only available for next 48 hours'.toUpperCase(), style: placeholderTextStyle),
+        textAlign: TextAlign.center,
+        textDirection: TextDirection.ltr,
+      )
+        ..layout(maxWidth: 24.0 * hourlyWidth, minWidth: 24.0 * hourlyWidth);
+      placeholderTextPainter.paint(canvas, Offset((24.0 * hourlyWidth) * i + startXFotPlaceholders, size.height * 0.5 - 12));
+    }
+  }
+}
+
+class TemperaturePainter extends CustomPainter with MyChartDrawingTools{
   final List<WeatherDataObject> hourlyDataList;
   int max = -999;
   int min = 999;
@@ -31,7 +54,8 @@ class TemperaturePainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final double topReservedHeight = 0.2 * size.height;
     final double bottomReservedHeight = 0.2 * size.height;
-    final double drawableHeight = size.height - topReservedHeight - bottomReservedHeight;
+    final double drawableHeight = size.height - topReservedHeight -
+        bottomReservedHeight;
     //
     final Paint linePaint = Paint()
       ..color = Colors.orange
@@ -40,11 +64,15 @@ class TemperaturePainter extends CustomPainter {
       ..color = Colors.orange[300];
     final double hourlyWidth = size.width / 24;
 
-    for (int i=0; i<hourlyDataList.length - 1; i++) {
-      double thisY = getOffsetY(bottomReservedHeight, drawableHeight, range, min, hourlyDataList[i].temperature);
-      double nextY = getOffsetY(bottomReservedHeight, drawableHeight, range, min, hourlyDataList[i + 1].temperature);
+    for (int i = 0; i < hourlyDataList.length - 1; i++) {
+      double thisY = getOffsetY(
+          bottomReservedHeight, drawableHeight, range, min,
+          hourlyDataList[i].temperature);
+      double nextY = getOffsetY(
+          bottomReservedHeight, drawableHeight, range, min,
+          hourlyDataList[i + 1].temperature);
       double thisX = i * hourlyWidth;
-      double nextX= (i + 1) * hourlyWidth;
+      double nextX = (i + 1) * hourlyWidth;
       // line
       Offset offsetStart = Offset(thisX, thisY);
       Offset offsetEnd = Offset(nextX, nextY);
@@ -66,45 +94,33 @@ class TemperaturePainter extends CustomPainter {
             fontSize: 12.0
         );
         final TextPainter temperatureTextPainter = TextPainter(
-            text: TextSpan(text: hourlyDataList[i].temperature.toString(), style: temperatureTextStyle),
+            text: TextSpan(text: hourlyDataList[i].temperature.toString(),
+                style: temperatureTextStyle),
             textAlign: TextAlign.justify,
             textDirection: TextDirection.ltr
         )
           ..layout(maxWidth: 24.0);
-        temperatureTextPainter.paint(canvas, Offset(thisX, thisY - topReservedHeight));
+        temperatureTextPainter.paint(
+            canvas, Offset(thisX, thisY - topReservedHeight));
         // time text
         final TextStyle timeTextStyle = TextStyle(
             color: Colors.grey,
             fontSize: 8.0
         );
         final TextPainter timeTextPainter = TextPainter(
-            text: TextSpan(text: hourlyDataList[i].timeString, style: timeTextStyle),
+            text: TextSpan(
+                text: hourlyDataList[i].timeString, style: timeTextStyle),
             textAlign: TextAlign.justify,
             textDirection: TextDirection.ltr
         )
           ..layout(maxWidth: 30.0);
-        timeTextPainter.paint(canvas, Offset(thisX, topReservedHeight + drawableHeight + 0.2 * bottomReservedHeight));
+        timeTextPainter.paint(canvas, Offset(thisX,
+            topReservedHeight + drawableHeight + 0.2 * bottomReservedHeight));
       }
     }
 
     // placeholder text
-    final int firstDataHour = DateTime.fromMillisecondsSinceEpoch(hourlyDataList[0].time).hour == 0 ? 24 : DateTime.fromMillisecondsSinceEpoch(hourlyDataList[0].time).hour;
-    final double startXFotPlaceholders = 24 - firstDataHour + 24.0 * hourlyWidth * 2;
-
-    for (int i=0; i<5; i++) {
-      final TextStyle placeholderTextStyle = TextStyle(
-        color: Colors.grey,
-        fontSize: 8.0,
-        fontWeight: FontWeight.bold,
-      );
-      final TextPainter placeholderTextPainter = TextPainter(
-        text: TextSpan(text: 'Hourly forecasts are only available for next 48 hours'.toUpperCase(), style: placeholderTextStyle),
-        textAlign: TextAlign.center,
-        textDirection: TextDirection.ltr,
-      )
-        ..layout(maxWidth: 24.0 * hourlyWidth, minWidth: 24.0 * hourlyWidth);
-      placeholderTextPainter.paint(canvas, Offset((24.0 * hourlyWidth) * i + startXFotPlaceholders, size.height * 0.5 - 12));
-    }
+    drawPlaceholderText(canvas, size, hourlyDataList, hourlyWidth);
   }
 
   @override
@@ -116,7 +132,7 @@ class TemperaturePainter extends CustomPainter {
 
 
 
-class PrecipitationPainter extends CustomPainter {
+class PrecipitationPainter extends CustomPainter with MyChartDrawingTools{
   final List<WeatherDataObject> hourlyDataList;
   int max = 100;
   int min = 0;
@@ -189,24 +205,9 @@ class PrecipitationPainter extends CustomPainter {
     }
 
     // placeholder text
-    final int firstDataHour = DateTime.fromMillisecondsSinceEpoch(hourlyDataList[0].time).hour == 0 ? 24 : DateTime.fromMillisecondsSinceEpoch(hourlyDataList[0].time).hour;
-    final double startXFotPlaceholders = 24 - firstDataHour + 24.0 * hourlyWidth * 2;
-
-    for (int i=0; i<5; i++) {
-      final TextStyle placeholderTextStyle = TextStyle(
-        color: Colors.grey,
-        fontSize: 8.0,
-        fontWeight: FontWeight.bold,
-      );
-      final TextPainter placeholderTextPainter = TextPainter(
-        text: TextSpan(text: 'Hourly forecasts are only available for next 48 hours'.toUpperCase(), style: placeholderTextStyle),
-        textAlign: TextAlign.center,
-        textDirection: TextDirection.ltr,
-      )
-        ..layout(maxWidth: 24.0 * hourlyWidth, minWidth: 24.0 * hourlyWidth);
-      placeholderTextPainter.paint(canvas, Offset((24.0 * hourlyWidth) * i + startXFotPlaceholders, size.height * 0.5 - 12));
-    }
+    drawPlaceholderText(canvas, size, hourlyDataList, hourlyWidth);
   }
+
 
   @override
   bool shouldRepaint(CustomPainter oldDelegate) {
@@ -218,7 +219,7 @@ class PrecipitationPainter extends CustomPainter {
 
 
 
-class WindPainter extends CustomPainter {
+class WindPainter extends CustomPainter with MyChartDrawingTools{
   final List<WeatherDataObject> hourlyDataList;
   final bool _isCelsius;
   int max = -999;
@@ -281,23 +282,7 @@ class WindPainter extends CustomPainter {
     }
 
     // placeholder text
-    final int firstDataHour = DateTime.fromMillisecondsSinceEpoch(hourlyDataList[0].time).hour == 0 ? 24 : DateTime.fromMillisecondsSinceEpoch(hourlyDataList[0].time).hour;
-    final double startXFotPlaceholders = 24 - firstDataHour + 24.0 * hourlyWidth * 2;
-
-    for (int i=0; i<5; i++) {
-      final TextStyle placeholderTextStyle = TextStyle(
-        color: Colors.grey,
-        fontSize: 8.0,
-        fontWeight: FontWeight.bold,
-      );
-      final TextPainter placeholderTextPainter = TextPainter(
-        text: TextSpan(text: 'Hourly forecasts are only available for next 48 hours'.toUpperCase(), style: placeholderTextStyle),
-        textAlign: TextAlign.center,
-        textDirection: TextDirection.ltr,
-      )
-        ..layout(maxWidth: 24.0 * hourlyWidth, minWidth: 24.0 * hourlyWidth);
-      placeholderTextPainter.paint(canvas, Offset((24.0 * hourlyWidth) * i + startXFotPlaceholders, size.height * 0.5 - 12));
-    }
+    drawPlaceholderText(canvas, size, hourlyDataList, hourlyWidth);
   }
 
   @override
