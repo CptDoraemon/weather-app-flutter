@@ -72,10 +72,10 @@ class _WeatherAppLoaderState extends State<WeatherAppLoader> {
   Future<void> _refreshHandler() async {
     DateTime whenRequested = DateTime.now();
     if (whenRequested.difference(_lastLoaded).inSeconds < 10) {
-      await Future.delayed(Duration(seconds: 3), () => snackBar('Refresh data loaded :)'));
+      await Future.delayed(Duration(seconds: 3), () => snackBar('Refreshed data loaded :)'));
     } else {
       await _getLocation();
-      snackBar('Refresh data loaded');
+      snackBar('Refreshed data loaded');
     }
   }
  Future<void> _getLocation() async {

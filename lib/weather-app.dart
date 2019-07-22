@@ -28,7 +28,8 @@ class _WeatherAppState extends State<WeatherApp>{
   _WeatherAppState (this.weatherData, this.locationDescription)
       : selectedDataPath = ['currently'] {
     timeOrigin = weatherData.celsius()['currently'].time;
-    timeOriginHour = DateTime.fromMillisecondsSinceEpoch(timeOrigin).hour == 0 ? 24 : DateTime.fromMillisecondsSinceEpoch(timeOrigin).hour;
+//    timeOriginHour = DateTime.fromMillisecondsSinceEpoch(timeOrigin).hour == 0 ? 24 : DateTime.fromMillisecondsSinceEpoch(timeOrigin).hour;
+    timeOriginHour = DateTime.fromMillisecondsSinceEpoch(timeOrigin).hour;
   }
 
   // only the selected data obj
