@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'dart:ui';
 import './weather-data.dart';
+import 'dart:math' as math;
 
 export 'hourly-chart-canvas.dart';
 
@@ -266,20 +267,32 @@ class WindPainter extends CustomPainter with MyChartDrawingTools{
           i
       );
       // direction icon
-//      canvas.save();
-//      canvas.rotate(hourlyDataList[i].windBearing * 1.0);
-//      final TextStyle directionStyle = TextStyle(
-//          color: Colors.green,
-//          fontSize: 12.0 + ((hourlyDataList[i].windSpeed - min) / range) * 12.0,
-//      );
-//      final TextPainter directionPainter = TextPainter(
-//        text: TextSpan(text: '>>>', style: directionStyle),
-//        textAlign: TextAlign.justify,
-//        textDirection: TextDirection.ltr,
-//      )
-//        ..layout(maxWidth: 3.0 * hourlyWidth);
-//      directionPainter.paint(canvas, Offset(thisX, topReservedHeight + 0.5 * drawableHeight));
-//      canvas.restore();
+      canvas.save();
+      // text is drawn from top left, but rotation origin has to be the center of the text
+      final double iconSize = 10 + 20 * ((hourlyDataList[i].windSpeed - min) / range);
+      final double textCenterOffsetX = 0.5 * 0.5 * iconSize; // text A height : width = 2 : 1
+      final double textCenterOffsetY = 0.5 * iconSize;
+      final double textOriginX = thisX;
+      final double textOriginY = topReservedHeight + 0.5 * drawableHeight;
+      final double rotationOriginX = textOriginX + textCenterOffsetX;
+      final double rotationOriginY = textOriginY + textCenterOffsetY;
+      canvas.translate(rotationOriginX, rotationOriginY);
+      canvas.rotate(hourlyDataList[i].windBearing / 180 * math.pi);
+      canvas.translate(-textCenterOffsetX, -textCenterOffsetY);
+      //
+      final TextStyle directionStyle = TextStyle(
+        color: Colors.green,
+        fontSize: iconSize,
+//        backgroundColor: Colors.black
+      );
+      final TextPainter directionPainter = TextPainter(
+        text: TextSpan(text: 'A', style: directionStyle),
+        textAlign: TextAlign.start,
+        textDirection: TextDirection.ltr,
+      )
+        ..layout(maxWidth: 3.0 * hourlyWidth);
+      directionPainter.paint(canvas, Offset(0, 0));
+      canvas.restore();
     }
 
     // placeholder text
