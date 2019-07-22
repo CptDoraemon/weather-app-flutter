@@ -54,9 +54,10 @@ class _WeatherAppLoaderState extends State<WeatherAppLoader> {
   }
   Widget loadedScene(_weatherData, _locationDescription) {
     return RefreshIndicator(
-        child: WeatherApp(_weatherData, _locationDescription),
-        onRefresh: _refreshHandler,
-      );
+      key: ValueKey(_lastLoaded),
+      child: WeatherApp(_weatherData, _locationDescription),
+      onRefresh: _refreshHandler,
+    );
   }
   void snackBar(String message) {
     final snackBar = SnackBar(
@@ -71,10 +72,10 @@ class _WeatherAppLoaderState extends State<WeatherAppLoader> {
   Future<void> _refreshHandler() async {
     DateTime whenRequested = DateTime.now();
     if (whenRequested.difference(_lastLoaded).inSeconds < 10) {
-      snackBar('The data is still fresh :)');
+      await Future.delayed(Duration(seconds: 3), () => snackBar('Refresh data loaded :)'));
     } else {
       await _getLocation();
-      snackBar('Refreshed data loaded');
+      snackBar('Refresh data loaded');
     }
   }
  Future<void> _getLocation() async {
