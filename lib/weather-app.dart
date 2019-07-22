@@ -64,14 +64,21 @@ class _WeatherAppState extends State<WeatherApp>{
     });
   }
 
+  Widget sectionWrapper(Widget wrappedSection) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10.0),
+      child: wrappedSection,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return ListView(
       children: [
-        Header(getSelectedData(), locationDescription),
-        Summary(getSelectedData(), toggleUnit, _isCelsius),
-        HourlyChart(getUnitConvertedData()['hourly'], _hourOffset, _isCelsius, changeSelectedData, selectedDataPath),
-        DailyChart(getUnitConvertedData()['daily'], changeSelectedData)
+        sectionWrapper(Header(getSelectedData(), locationDescription)),
+        sectionWrapper(Summary(getSelectedData(), toggleUnit, _isCelsius)),
+        sectionWrapper(HourlyChart(getUnitConvertedData()['hourly'], _hourOffset, _isCelsius, changeSelectedData, selectedDataPath)),
+        sectionWrapper(DailyChart(getUnitConvertedData()['daily'], changeSelectedData))
       ],
     );
   }
@@ -84,16 +91,14 @@ class Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.symmetric(vertical: 24.0, horizontal: 20.0),
-      child: Column(
-        children: [
-          Text(locationDescription, style: TextStyle(fontSize: 24.0), textAlign: TextAlign.center,),
-          Text('${selectedData.weekdayLong} ${selectedData.timeString}', style: TextStyle(fontWeight: FontWeight.bold)),
-          Text(selectedData.summary)
-        ],
-        crossAxisAlignment: CrossAxisAlignment.center,
-      ),
+
+    return Column(
+      children: [
+        Text(locationDescription, style: TextStyle(fontSize: 24.0, fontWeight: FontWeight.bold, height: 1.1), textAlign: TextAlign.center),
+        Text('${selectedData.weekdayLong} ${selectedData.timeString}', style: TextStyle(fontSize: 20.0, height: 1.1)),
+        Text(selectedData.summary, style: TextStyle(height: 1.2))
+      ],
+      crossAxisAlignment: CrossAxisAlignment.center,
     );
   }
 }
@@ -138,11 +143,11 @@ class Summary extends StatelessWidget {
     return Stack(
       children: [
         Center(
-          child: Text(selectedData.temperature.toString(), style: TextStyle(fontSize: 72.0))
+          child: Text(selectedData.temperature.toString(), style: TextStyle(fontSize: 100.0, fontWeight: FontWeight.normal))
         ),
         Positioned(
           child: unitSwitcherWidget(),
-          left: 180.0,
+          left: 220.0,
           right: 0,
         )
       ],
@@ -151,18 +156,16 @@ class Summary extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.symmetric(vertical: 24.0),
-      child: Column(
+    const TextStyle textStyle = TextStyle(height: 1.2);
+    return Column(
         children: [
           temperatureWidget(),
-          Text('Precipitation: ${selectedData.precipitation}%'),
-//          Text('Humidity: ${selectedData.humidity}%'),
-          Text('Wind: ${selectedData.windSpeed} ${_isCelsius ? 'km/h' : 'mph'}'),
+          Text('Precipitation: ${selectedData.precipitation}%', style: textStyle),
+          Text('Humidity: ${selectedData.humidity}%', style: textStyle),
+          Text('Wind: ${selectedData.windSpeed} ${_isCelsius ? 'km/h' : 'mph'}', style: textStyle),
         ],
         crossAxisAlignment: CrossAxisAlignment.center,
-      ),
-    );
+      );
   }
 }
 
@@ -321,15 +324,15 @@ class _HourlyChartState extends State<HourlyChart> with TickerProviderStateMixin
   Widget build(BuildContext context) {
     double horizontalPadding = 10.0;
     double canvasWidth = MediaQuery.of(context).size.width - 2 * horizontalPadding;
-    double canvasHeight = 100.0;
+    double canvasHeight = 130.0;
     double hourWidth = canvasWidth / 24;
 
     return Container(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
+          chartWithGestureDetector(canvasWidth, canvasHeight, hourWidth, horizontalPadding),
           chartSelector(),
-          chartWithGestureDetector(canvasWidth, canvasHeight, hourWidth, horizontalPadding)
         ],
       ),
     );
@@ -374,7 +377,7 @@ class DailyChart extends StatelessWidget {
   Widget dayGraphWidget(WeatherDataObject dailyDataObject, int index) {
     List<dynamic> pathList = ['daily', index];
     return ButtonTheme(
-      minWidth: 5.0,
+      minWidth: 80.0,
       height: 80.0,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30.0)),
       child: FlatButton(
