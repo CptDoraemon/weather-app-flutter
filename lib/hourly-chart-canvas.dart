@@ -46,7 +46,7 @@ class MyChartDrawingTools {
     topTextPainter.paint(canvas, topLegendPosition);
     // bottom time text
     final TextStyle timeTextStyle = TextStyle(
-        color: Colors.grey,
+        color: isSelected ? Colors.black : Colors.grey,
         fontSize: 8.0
     );
     final TextPainter bottomTextPainter = TextPainter(

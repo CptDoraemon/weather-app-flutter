@@ -65,15 +65,13 @@ class _WeatherAppState extends State<WeatherApp>{
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-        body: ListView(
-          children: [
-            Header(getSelectedData(), locationDescription),
-            Summary(getSelectedData(), toggleUnit, _isCelsius),
-            HourlyChart(getUnitConvertedData()['hourly'], _hourOffset, _isCelsius, changeSelectedData, selectedDataPath),
-            DailyChart(getUnitConvertedData()['daily'], changeSelectedData)
-          ],
-        )
+    return ListView(
+      children: [
+        Header(getSelectedData(), locationDescription),
+        Summary(getSelectedData(), toggleUnit, _isCelsius),
+        HourlyChart(getUnitConvertedData()['hourly'], _hourOffset, _isCelsius, changeSelectedData, selectedDataPath),
+        DailyChart(getUnitConvertedData()['daily'], changeSelectedData)
+      ],
     );
   }
 }
@@ -214,10 +212,7 @@ class _HourlyChartState extends State<HourlyChart> with TickerProviderStateMixin
     });
   }
 
-  void canvasTapHandler(TapDownDetails details) {
-    // 10.0 padding is defined in canvas, not in widget
-    final double padding = 10.0;
-    //
+  void canvasTapHandler(TapDownDetails details, double padding) {
     final RenderBox referenceBox = context.findRenderObject();
     final Offset offset = referenceBox.globalToLocal(details.globalPosition);
     final double hoursBlockWidth = (referenceBox.size.width - padding * 2) / 24;
@@ -260,6 +255,7 @@ class _HourlyChartState extends State<HourlyChart> with TickerProviderStateMixin
     return Container(
         width: chartWidth,
         height: chartHeight,
+        constraints: BoxConstraints(maxWidth: chartWidth - 1.0),
         key: ValueKey(valueKey), // animatedSwitcher required
         child: Stack( // AnimatedPositioned needs to be in stack
           children: <Widget>[
@@ -293,9 +289,9 @@ class _HourlyChartState extends State<HourlyChart> with TickerProviderStateMixin
     );
   }
 
-  Widget chartWithGestureDetector(double chartWidth, double chartHeight, double hourWidth) {
+  Widget chartWithGestureDetector(double chartWidth, double chartHeight, double hourWidth, double padding) {
     Widget gestureDetector = GestureDetector(
-      onTapDown: canvasTapHandler,
+      onTapDown: (details) => canvasTapHandler(details, padding),
       child: Container(
         width: chartWidth,
         height: chartHeight,
@@ -329,9 +325,10 @@ class _HourlyChartState extends State<HourlyChart> with TickerProviderStateMixin
 
     return Container(
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           chartSelector(),
-          chartWithGestureDetector(canvasWidth, canvasHeight, hourWidth)
+          chartWithGestureDetector(canvasWidth, canvasHeight, hourWidth, horizontalPadding)
         ],
       ),
     );

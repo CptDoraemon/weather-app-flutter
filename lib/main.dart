@@ -14,49 +14,70 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Weather by Xiaoxihome',
-      home: Loader(),
+      home: Scaffold(
+        body: WeatherAppLoader()
+      ),
       theme: ThemeData(primaryColor: Colors.white),
     );
   }
 }
 
-class Loader extends StatefulWidget {
-  _LoaderState createState() => _LoaderState();
+class WeatherAppLoader extends StatefulWidget {
+  _WeatherAppLoaderState createState() => _WeatherAppLoaderState();
 }
 
 
-class _LoaderState extends State<Loader> {
+class _WeatherAppLoaderState extends State<WeatherAppLoader> {
   bool _isLocated = false;
   bool _isWeatherDataRetrieved = false;
   bool _isError = false;
+  DateTime _lastLoaded;
   String _errorMessage;
   Map<String, double> _currentLocation;
   WeatherData _weatherData;
   String _locationDescription;
 
   Widget locatingScene() {
-    return Scaffold(
-        body: Center(
-            child: Text('Getting your location...'),
-          )
-        );
+    return Center(
+       child: Text('Getting your location...'),
+    );
   }
   Widget retrievingWeatherDataScene() {
-    return Scaffold(
-        body: Center(
-          child: Text('Retrieving weather data...'),
-        )
+    return Center(
+      child: Text('Retrieving weather data...')
     );
   }
   Widget errorScene() {
-    return Scaffold(
-        body: Center(
-          child: Text('error'),
-        )
+    return Center(
+      child: Text('error'),
     );
   }
+  Widget loadedScene(_weatherData, _locationDescription) {
+    return RefreshIndicator(
+        child: WeatherApp(_weatherData, _locationDescription),
+        onRefresh: _refreshHandler,
+      );
+  }
+  void snackBar(String message) {
+    final snackBar = SnackBar(
+      content: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: <Widget>[Text(message)],
+      ),
+    );
+    Scaffold.of(context).showSnackBar(snackBar);
+  }
 
- void _getLocation() async {
+  Future<void> _refreshHandler() async {
+    DateTime whenRequested = DateTime.now();
+    if (whenRequested.difference(_lastLoaded).inSeconds < 10) {
+      snackBar('The data is still fresh :)');
+    } else {
+      await _getLocation();
+      snackBar('Refreshed data loaded');
+    }
+  }
+ Future<void> _getLocation() async {
     var location = Location();
     try {
       LocationData currentLocation = await location.getLocation();
@@ -67,7 +88,7 @@ class _LoaderState extends State<Loader> {
           'longitude': currentLocation.longitude
         };
       });
-      _getWeatherData(_currentLocation);
+      await _getWeatherData(_currentLocation);
     } catch (e) {
       setState(() {
         _isError = true;
@@ -80,7 +101,7 @@ class _LoaderState extends State<Loader> {
     }
   }
 
-  void _getWeatherData(Map<String, double> location) async {
+  Future<void> _getWeatherData(Map<String, double> location) async {
     try {
       String weatherAPI = 'https://www.xiaoxihome.com/api/weather';
       String locationDescriptionAPI = 'https://www.xiaoxihome.com/api/reversegeocoding';
@@ -99,6 +120,7 @@ class _LoaderState extends State<Loader> {
       if (weatherResJson['status'] == 'success' && locationDescriptionResJson['status'] == 'success') {
         _weatherData = WeatherData(weatherResJson['data']);
         _locationDescription = locationDescriptionResJson['data'];
+        _lastLoaded = DateTime.now();
         setState(() {
           _isWeatherDataRetrieved = true;
         });
@@ -126,7 +148,7 @@ class _LoaderState extends State<Loader> {
       !_isLocated ? locatingScene() :
       !_isWeatherDataRetrieved ? retrievingWeatherDataScene() :
       _isError ? errorScene() :
-      WeatherApp(_weatherData, _locationDescription);
+      loadedScene(_weatherData, _locationDescription);
   }
 }
 
