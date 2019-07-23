@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 import './weather-app.dart';
+import './search.dart';
 
 void main() => runApp(MyApp());
 
@@ -19,7 +20,6 @@ class MyApp extends StatelessWidget {
 class Tabs extends StatefulWidget {
   @override
   State<StatefulWidget> createState() {
-    // TODO: implement createState
     return TabsState();
   }
 }
@@ -34,7 +34,7 @@ class TabsState extends State<Tabs> with SingleTickerProviderStateMixin{
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(vsync: this, length: _tabLength);
+    _tabController = TabController(vsync: this, length: _tabLength, initialIndex: 1);
     _tabController.addListener(setCurrentTabIndex);
   }
 
@@ -63,7 +63,7 @@ class TabsState extends State<Tabs> with SingleTickerProviderStateMixin{
         body: TabBarView(
           controller: _tabController,
           children: [
-            WeatherAppLoader(),
+            SearchTab(),
             WeatherAppLoader(),
             WeatherAppLoader()
           ]
