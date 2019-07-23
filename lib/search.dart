@@ -14,6 +14,7 @@ class _SearchTabState extends State<SearchTab> {
   final textFieldController = TextEditingController();
   bool _isTextFieldEmpty = true;
   final double _padding = 10.0;
+  FocusNode _textFieldNode = FocusNode();
 
   @override
   void initState() {
@@ -26,6 +27,8 @@ class _SearchTabState extends State<SearchTab> {
     // Clean up the controller when the widget is disposed.
     textFieldController.removeListener(textChangeHandler);
     textFieldController.dispose();
+    //
+    _textFieldNode.dispose();
     super.dispose();
   }
 
@@ -84,6 +87,7 @@ class _SearchTabState extends State<SearchTab> {
             Container(
               width: textFieldWidth,
               child: TextField(
+                focusNode: _textFieldNode,
                 controller: textFieldController,
                 decoration: InputDecoration(enabledBorder: border, focusedBorder: border),
                 style: TextStyle(fontWeight: FontWeight.bold),
@@ -97,13 +101,16 @@ class _SearchTabState extends State<SearchTab> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: _padding),
-      child: ListView(
-        children: <Widget>[
-          searchField(),
-          _isTextFieldEmpty ? placeholder() : entryWrapper('search result'),
-        ],
+    return GestureDetector(
+      onTapDown: (details) => _textFieldNode.unfocus(),
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: _padding),
+        child: ListView(
+          children: <Widget>[
+            searchField(),
+            _isTextFieldEmpty ? placeholder() : entryWrapper('search result'),
+          ],
+        ),
       ),
     );
   }
