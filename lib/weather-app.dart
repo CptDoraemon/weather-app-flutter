@@ -16,7 +16,7 @@ class WeatherAppLoader extends StatefulWidget {
   _WeatherAppLoaderState createState() => _WeatherAppLoaderState();
 }
 
-class _WeatherAppLoaderState extends State<WeatherAppLoader> {
+class _WeatherAppLoaderState extends State<WeatherAppLoader> with AutomaticKeepAliveClientMixin<WeatherAppLoader>{
   bool _isLocated = false;
   bool _isWeatherDataRetrieved = false;
   bool _isError = false;
@@ -25,6 +25,9 @@ class _WeatherAppLoaderState extends State<WeatherAppLoader> {
   Map<String, double> _currentLocation;
   WeatherData _weatherData;
   String _locationDescription;
+
+  @override
+  bool get wantKeepAlive => true;
 
   Widget locatingScene() {
     return Center(
@@ -103,7 +106,6 @@ class _WeatherAppLoaderState extends State<WeatherAppLoader> {
       final weatherRes = await http.post(weatherAPI, headers: {"Content-Type": "application/json"}, body: body);
       final locationDescriptionRes = await http.post(locationDescriptionAPI, headers: {"Content-Type": "application/json"}, body: body);
 
-      print(weatherRes.body);
       Map<String, dynamic> weatherResJson = jsonDecode(weatherRes.body);
       Map<String, dynamic> locationDescriptionResJson = jsonDecode(locationDescriptionRes.body);
 
@@ -134,6 +136,7 @@ class _WeatherAppLoaderState extends State<WeatherAppLoader> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(null);
     return
       !_isLocated ? locatingScene() :
       !_isWeatherDataRetrieved ? retrievingWeatherDataScene() :

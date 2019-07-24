@@ -29,8 +29,10 @@ class TabsState extends State<Tabs> with SingleTickerProviderStateMixin{
   TabController _tabController;
 
   void setCurrentTabIndex() {
+    FocusScope.of(context).unfocus();
     setState(() => _currentTabIndex = _tabController.index);
   }
+
   @override
   void initState() {
     super.initState();
