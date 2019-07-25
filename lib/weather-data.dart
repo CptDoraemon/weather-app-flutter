@@ -3,6 +3,7 @@ export 'weather-data.dart';
 class WeatherData {
   WeatherDataObject currentlyCelsius;
   WeatherDataObject currentlyFahrenheit;
+  int timeZoneOffset;
 
   List<WeatherDataObject> hourlyCelsius = [];
   List<WeatherDataObject> hourlyFahrenheit = [];
@@ -12,19 +13,20 @@ class WeatherData {
 
 
   WeatherData(Map<String, dynamic>  json) {
-    this.currentlyCelsius = WeatherDataObject.celsius(json['currently']);
-    this.currentlyFahrenheit = WeatherDataObject.fahrenheit(json['currently']);
+    this.timeZoneOffset = json['offset'];
+    this.currentlyCelsius = WeatherDataObject.celsius(json['currently'], timeZoneOffset);
+    this.currentlyFahrenheit = WeatherDataObject.fahrenheit(json['currently'], timeZoneOffset);
 
     List<dynamic> hourly = json['hourly']['data'];
     List<dynamic> daily = json['daily']['data'];
     for (int i=0; i<hourly.length; i++) {
-      this.hourlyCelsius.add(WeatherDataObject.celsius(hourly[i]));
-      this.hourlyFahrenheit.add(WeatherDataObject.fahrenheit(hourly[i]));
+      this.hourlyCelsius.add(WeatherDataObject.celsius(hourly[i], timeZoneOffset));
+      this.hourlyFahrenheit.add(WeatherDataObject.fahrenheit(hourly[i], timeZoneOffset));
     }
     for (int i=0; i<daily.length; i++) {
-      WeatherDataObject celsius = WeatherDataObject.celsius(daily[i]);
+      WeatherDataObject celsius = WeatherDataObject.celsius(daily[i], timeZoneOffset);
       celsius.timeString = '';
-      WeatherDataObject fahrenheit = WeatherDataObject.fahrenheit(daily[i]);
+      WeatherDataObject fahrenheit = WeatherDataObject.fahrenheit(daily[i], timeZoneOffset);
       fahrenheit.timeString = '';
 
       this.dailyCelsius.add(celsius);
@@ -70,7 +72,7 @@ class WeatherDataObject {
 
 
 
-  WeatherDataObject.fahrenheit(Map<String, dynamic> json)
+  WeatherDataObject.fahrenheit(Map<String, dynamic> json, int timeZoneOffset)
       : summary = json['summary'],
         icon = json['icon'],
         temperature = json['temperature'] == null ? json['temperatureHigh'].round() : json['temperature'].round(),
@@ -81,7 +83,7 @@ class WeatherDataObject {
         windSpeed = json['windSpeed'].round(),
         humidity = (json['humidity'] * 100).round(){
     time = json['time'] * 1000;
-    DateTime date = DateTime.fromMillisecondsSinceEpoch(time);
+    DateTime date = DateTime.fromMillisecondsSinceEpoch(time + timeZoneOffset * 60 * 60 * 1000, isUtc: true);
     weekdayLong = weekdayLongList[date.weekday - 1];
     weekdayShort = weekdayShortList[date.weekday - 1];
 
@@ -90,7 +92,7 @@ class WeatherDataObject {
     timeString = '$hour:$minute';
   }
 
-  WeatherDataObject.celsius(Map<String, dynamic> json)
+  WeatherDataObject.celsius(Map<String, dynamic> json, int timeZoneOffset)
       : summary = json['summary'],
         icon = json['icon'],
         temperature = json['temperature'] == null ? fToC(json['temperatureHigh']) : fToC(json['temperature']),
@@ -101,7 +103,7 @@ class WeatherDataObject {
         windSpeed = mphToKmh(json['windSpeed']),
         humidity = (json['humidity'] * 100).round(){
     time = json['time'] * 1000;
-    DateTime date = DateTime.fromMillisecondsSinceEpoch(time);
+    DateTime date = DateTime.fromMillisecondsSinceEpoch(time + timeZoneOffset * 60 * 60 * 1000, isUtc: true);
     weekdayLong = weekdayLongList[date.weekday - 1];
     weekdayShort = weekdayShortList[date.weekday - 1];
     String hour = date.hour < 10 ? '0${date.hour}' : date.hour.toString();

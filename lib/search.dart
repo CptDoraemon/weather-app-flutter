@@ -53,6 +53,9 @@ class SearchCityResultObject {
 }
 
 class SearchTab extends StatefulWidget {
+  final Function addNewTab;
+  SearchTab(this.addNewTab);
+
   @override
   State<StatefulWidget> createState() => _SearchTabState();
 }
@@ -80,28 +83,29 @@ class _SearchTabState extends State<SearchTab> {
 
   @override
   void dispose() {
+    super.dispose();
+    //
+    sendQueryDebounceTimer?.cancel();
+    sendQueryDebounceTimer = null;
     // Clean up the controller when the widget is disposed.
     textFieldController.removeListener(textChangeHandler);
     textFieldController.dispose();
     //
     _textFieldNode.dispose();
-    //
-    sendQueryDebounceTimer.cancel();
-    sendQueryDebounceTimer = null;
-    super.dispose();
   }
 
   void scheduleSendQuery(String queryString) {
-    if (sendQueryDebounceTimer != null) sendQueryDebounceTimer.cancel();
+    sendQueryDebounceTimer?.cancel();
     sendQueryDebounceTimer = Timer(Duration(milliseconds: 300), () => sendQuery(queryString));
   }
 
   void sendQuery(String queryString) async {
-    setState(() => _isSendingQuery = true);
     String queryStringEncoded = Uri.encodeComponent(queryString);
 //    String url = 'http://localhost:5000/api/searchCityName?cityName=$queryStringEncoded';
     String url = 'https://www.xiaoxihome.com/api/searchCityName?cityName=$queryStringEncoded';
     final response = await http.get(url);
+    // create new tab => lose focus => textField changed => query already sent => unmounted when response received
+    if (!mounted) return;
     setState(() => _isSendingQuery = false);
     if (response.statusCode == 200) {
       setState(() {
@@ -118,13 +122,15 @@ class _SearchTabState extends State<SearchTab> {
   void textChangeHandler() {
     if (textFieldController.text.isEmpty) {
       // empty
-      if (sendQueryDebounceTimer != null) sendQueryDebounceTimer.cancel();
+      _searchResults = null;
+      sendQueryDebounceTimer?.cancel();
       if (!_isTextFieldEmpty) setState(() => _isTextFieldEmpty = true);
     } else if (textFieldController.text.isNotEmpty) {
       if (_isTextFieldEmpty) setState(() => _isTextFieldEmpty = false);
       if (textFieldController.text.length < 3) {
         // length == 1 || length == 2
-        if (sendQueryDebounceTimer != null) sendQueryDebounceTimer.cancel();
+        _searchResults = null;
+        sendQueryDebounceTimer?.cancel();
         if (_inputIsLongEnough) setState(() => _inputIsLongEnough = false);
       } else {
         // length >= 3
@@ -134,19 +140,21 @@ class _SearchTabState extends State<SearchTab> {
     }
   }
 
-  Widget placeholder() {
-    return Padding(
-      padding: paddingY,
-      child: Container(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: <Widget>[
-            Text('Enter city name'),
-            Text('Only the cities in Canada, US, and China are supported'),
-          ],
-        ),
+  List<Widget> placeholder() {
+    return [
+      Center(
+          child: Container(
+            padding: EdgeInsets.symmetric(horizontal: 20.0, vertical: 5.0),
+            child: Text('Enter city name', textAlign: TextAlign.center),
+          )
       ),
-    );
+      Center(
+          child: Container(
+            padding: EdgeInsets.symmetric(horizontal: 20.0, vertical: 5.0),
+            child: Text('Only the prominent cities in Canada, United States, and China are supported', textAlign: TextAlign.center),
+          )
+      ),
+    ];
   }
 
   Widget sendingQueryPlaceholder() {
@@ -176,16 +184,19 @@ class _SearchTabState extends State<SearchTab> {
     );
   }
 
-  Widget entryWrapper(String text) {
+  Widget entryWrapper(String text, double longitude, double latitude) {
     return Center(
-      child: Padding(
-        padding: paddingY,
-        child: Container(
-          height: 20.0,
-          child: Text(text),
-        ),
-      )
-    );
+      child: ButtonTheme(
+          minWidth: double.infinity,
+          padding: EdgeInsets.symmetric(horizontal: 10.0, vertical: 5.0),
+          child: FlatButton(
+            onPressed: () {
+              widget.addNewTab(longitude, latitude);
+            },
+            child: Text(text, textAlign: TextAlign.center),
+          ),
+        )
+      );
   }
 
   Widget plainTextEntryWrapper(String text) {
@@ -238,12 +249,12 @@ class _SearchTabState extends State<SearchTab> {
     final searchResultList = [];
     if (_searchResults != null) {
       if (!_searchResults.isSuccessful) {
-        searchResultList.add(entryWrapper('Server is not available'));
+        searchResultList.add(plainTextEntryWrapper('Server is not available'));
       } else if (_searchResults.isEmpty) {
-        searchResultList.add(entryWrapper('No results found'));
+        searchResultList.add(plainTextEntryWrapper('No results found'));
       } else {
         _searchResults.cityList.forEach((i) {
-          searchResultList.add(entryWrapper('${i.city}, ${i.province}, ${i.country}.'));
+          searchResultList.add(entryWrapper('${i.city}, ${i.province}, ${i.country}.', i.longitude, i.latitude));
         });
       }
     }
@@ -257,9 +268,9 @@ class _SearchTabState extends State<SearchTab> {
           children: <Widget>[
             searchField(),
             sendingQueryPlaceholder(),
-            if(_isTextFieldEmpty) placeholder(),
+            if(_isTextFieldEmpty) ...placeholder(),
             if(!_isTextFieldEmpty && !_inputIsLongEnough) keepGoingPlaceholder(),
-            if(_isError) entryWrapper('Server is not available'),
+            if(_isError) plainTextEntryWrapper('Server is not available'),
             if(_inputIsLongEnough) ...searchResultList
           ],
         ),

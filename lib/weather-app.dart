@@ -13,6 +13,10 @@ export 'weather-app.dart';
 // WeatherAppLoader -> WeatherApp -> [Header, Summary, hourlyChart, dailyGraph]
 
 class WeatherAppLoader extends StatefulWidget {
+  final double longitude;
+  final double latitude;
+  WeatherAppLoader(this.longitude, this.latitude);
+
   _WeatherAppLoaderState createState() => _WeatherAppLoaderState();
 }
 
@@ -71,26 +75,39 @@ class _WeatherAppLoaderState extends State<WeatherAppLoader> with AutomaticKeepA
     }
   }
   Future<void> _getLocation() async {
-    var location = Location();
-    try {
-      LocationData currentLocation = await location.getLocation();
+    if (widget.latitude == null || widget.longitude == null) {
+      // need GPS location
+      var location = Location();
+      try {
+        LocationData currentLocation = await location.getLocation();
+        if (mounted) setState(() {
+          _isLocated = true;
+          _currentLocation = {
+            'latitude': currentLocation.latitude,
+            'longitude': currentLocation.longitude
+          };
+        });
+        await _getWeatherData(_currentLocation);
+      } catch (e) {
+        if (mounted) setState(() {
+          _isError = true;
+          _errorMessage = 'We had a problem to get your location';
+          _currentLocation = {
+            'latitude': 43.6532,
+            'longitude': 79.3832
+          };
+        });
+      }
+    } else {
+      // location got from search
       if (mounted) setState(() {
         _isLocated = true;
         _currentLocation = {
-          'latitude': currentLocation.latitude,
-          'longitude': currentLocation.longitude
+          'latitude': widget.latitude,
+          'longitude': widget.longitude
         };
       });
       await _getWeatherData(_currentLocation);
-    } catch (e) {
-      if (mounted) setState(() {
-        _isError = true;
-        _errorMessage = 'We had a problem to get your location';
-        _currentLocation = {
-          'latitude': 43.6532,
-          'longitude': 79.3832
-        };
-      });
     }
   }
 

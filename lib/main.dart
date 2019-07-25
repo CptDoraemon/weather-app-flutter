@@ -23,20 +23,15 @@ class Tabs extends StatefulWidget {
     return TabsState();
   }
 }
-class TabsState extends State<Tabs> with SingleTickerProviderStateMixin{
-  int _tabLength = 3;
+class TabsState extends State<Tabs> with TickerProviderStateMixin{
   int _currentTabIndex = 1;
   TabController _tabController;
-
-  void setCurrentTabIndex() {
-    FocusScope.of(context).unfocus();
-    setState(() => _currentTabIndex = _tabController.index);
-  }
+  final List<Map<String, double>> savedTabsList = [];
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(vsync: this, length: _tabLength, initialIndex: 1);
+    _tabController = TabController(vsync: this, length: getTabLength(), initialIndex: 1);
     _tabController.addListener(setCurrentTabIndex);
   }
 
@@ -45,6 +40,42 @@ class TabsState extends State<Tabs> with SingleTickerProviderStateMixin{
     _tabController.removeListener(setCurrentTabIndex);
     _tabController.dispose();
     super.dispose();
+  }
+
+  void updateTabController() {
+    setState(() {
+      _tabController.dispose();
+      _tabController = TabController(vsync: this, length: getTabLength(), initialIndex: _currentTabIndex);
+      _tabController.addListener(setCurrentTabIndex);
+      _tabController.animateTo(getTabLength() - 1, duration: Duration(seconds: 1));
+    });
+  }
+
+  int getTabLength() {
+    return 2 + savedTabsList.length;
+  }
+
+  void setCurrentTabIndex() {
+    FocusScope.of(context).unfocus();
+    setState(() => _currentTabIndex = _tabController.index);
+  }
+
+  void addNewTab(double longitude, double latitude) {
+    setState(() {
+      savedTabsList.add({
+        'latitude': latitude,
+        'longitude': longitude
+      });
+      updateTabController();
+    });
+  }
+
+  List<Widget> buildSavedTabs() {
+    final List<Widget> list = [];
+    savedTabsList.forEach((map) {
+      list.add(WeatherAppLoader(map['longitude'], map['latitude']));
+    });
+    return list;
   }
 
   Widget blankAppBar() {
@@ -65,12 +96,12 @@ class TabsState extends State<Tabs> with SingleTickerProviderStateMixin{
         body: TabBarView(
           controller: _tabController,
           children: [
-            SearchTab(),
-            WeatherAppLoader(),
-            WeatherAppLoader()
+            SearchTab(addNewTab),
+            WeatherAppLoader(null, null),
+            if (savedTabsList.length != 0) ...buildSavedTabs(),
           ]
         ),
-        bottomNavigationBar: TabIndicator(_tabLength, _currentTabIndex),
+        bottomNavigationBar: TabIndicator(getTabLength(), _currentTabIndex),
       );
   }
 }
