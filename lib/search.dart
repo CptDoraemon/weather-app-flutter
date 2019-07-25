@@ -100,6 +100,7 @@ class _SearchTabState extends State<SearchTab> {
   }
 
   void sendQuery(String queryString) async {
+    setState(() => _isSendingQuery = true);
     String queryStringEncoded = Uri.encodeComponent(queryString);
 //    String url = 'http://localhost:5000/api/searchCityName?cityName=$queryStringEncoded';
     String url = 'https://www.xiaoxihome.com/api/searchCityName?cityName=$queryStringEncoded';
