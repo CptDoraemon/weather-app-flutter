@@ -46,8 +46,8 @@ class SearchCityResultObject {
       city: json['city'],
       province: json['province'],
       country: json['country'],
-      longitude: json['longitude'],
-      latitude: json['latitude'],
+      longitude: json['longitude'] * 1.0,
+      latitude: json['latitude'] * 1.0,
     );
   }
 }
