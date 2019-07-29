@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'dart:async';
 
 import './weather-app.dart';
 import './search.dart';
@@ -30,6 +31,8 @@ class TabsState extends State<Tabs> with TickerProviderStateMixin{
   TabController _tabController;
   LocalStorage _localStorage = LocalStorage();
   List<Map<String, double>> _savedCitiesList = [];
+  bool isRemovingTab = false;
+  Timer isRemovingTabTimer;
 
 
   @override
@@ -55,12 +58,13 @@ class TabsState extends State<Tabs> with TickerProviderStateMixin{
     super.dispose();
   }
 
-  void updateTabController(bool isMoveToLastPage) {
+  void updateTabController(int animateToNewPage) {
     setState(() {
+      _tabController.removeListener(setCurrentTabIndex);
       _tabController.dispose();
       _tabController = TabController(vsync: this, length: getTabLength(), initialIndex: _currentTabIndex);
       _tabController.addListener(setCurrentTabIndex);
-      if (isMoveToLastPage) _tabController.animateTo(getTabLength() - 1, duration: Duration(seconds: 1));
+      if (animateToNewPage != null) _tabController.animateTo(animateToNewPage, duration: Duration(seconds: 1));
     });
   }
 
@@ -77,18 +81,19 @@ class TabsState extends State<Tabs> with TickerProviderStateMixin{
     setState(() {
       _localStorage.addToSavedCitiesList(latitude, longitude);
       _savedCitiesList = _localStorage.getSavedCitiesList();
-      updateTabController(true);
+      updateTabController(getTabLength() - 1);
     });
   }
 
   void removeCurrentTab() {
-    setState(() {
-      _localStorage.removeFromSavedCitiesList(_currentTabIndex - _reservedTabLength);
-      _currentTabIndex -= 1;
+    if (isRemovingTab) return;
+      isRemovingTab = true;
+      _localStorage.removeFromSavedCitiesList(_tabController.index - _reservedTabLength);
       _savedCitiesList = _localStorage.getSavedCitiesList();
-      updateTabController(false);
-    });
-  }
+      _currentTabIndex--;
+      updateTabController(null);
+      isRemovingTabTimer = Timer(Duration(seconds: 1), () => setState(() => isRemovingTab = false));
+    }
 
   List<Widget> buildSavedTabs() {
     final List<Widget> list = [];
@@ -121,7 +126,7 @@ class TabsState extends State<Tabs> with TickerProviderStateMixin{
             if (_savedCitiesList.length != 0) ...buildSavedTabs(),
           ]
         ),
-        bottomNavigationBar: TabIndicator(getTabLength(), _currentTabIndex, removeCurrentTab),
+        bottomNavigationBar: TabIndicator(getTabLength(), _currentTabIndex, removeCurrentTab, isRemovingTab),
       );
   }
 }
@@ -130,7 +135,8 @@ class TabIndicator extends StatelessWidget{
   final int _tabLength;
   final int _currentTabIndex;
   final Function removeCurrentTab;
-  TabIndicator(this._tabLength, this._currentTabIndex, this.removeCurrentTab);
+  final bool isRemoving;
+  TabIndicator(this._tabLength, this._currentTabIndex, this.removeCurrentTab, this.isRemoving);
 
   Widget tabIcon(bool isActive, IconData icon) {
     return AnimatedOpacity(
@@ -171,7 +177,7 @@ class TabIndicator extends StatelessWidget{
               children: _tabIcons,
             ),
           ),
-          if(_currentTabIndex > 1) Positioned(
+          if(_currentTabIndex > 1 && !isRemoving) Positioned(
               top: 0,
               right: 20.0,
               child: IconButton(
