@@ -5,6 +5,7 @@ import 'dart:async';
 import './weather-app.dart';
 import './search.dart';
 import './local-storage.dart';
+import './about.dart';
 
 void main() => runApp(MyApp());
 
@@ -126,7 +127,7 @@ class TabsState extends State<Tabs> with TickerProviderStateMixin{
             if (_savedCitiesList.length != 0) ...buildSavedTabs(),
           ]
         ),
-        bottomNavigationBar: TabIndicator(getTabLength(), _currentTabIndex, removeCurrentTab, isRemovingTab),
+        bottomNavigationBar: TabIndicator(getTabLength(), _currentTabIndex, removeCurrentTab),
       );
   }
 }
@@ -135,8 +136,7 @@ class TabIndicator extends StatelessWidget{
   final int _tabLength;
   final int _currentTabIndex;
   final Function removeCurrentTab;
-  final bool isRemoving;
-  TabIndicator(this._tabLength, this._currentTabIndex, this.removeCurrentTab, this.isRemoving);
+  TabIndicator(this._tabLength, this._currentTabIndex, this.removeCurrentTab);
 
   Widget tabIcon(bool isActive, IconData icon) {
     return AnimatedOpacity(
@@ -177,7 +177,7 @@ class TabIndicator extends StatelessWidget{
               children: _tabIcons,
             ),
           ),
-          if(_currentTabIndex > 1 && !isRemoving) Positioned(
+          if(_currentTabIndex > 1) Positioned(
               top: 0,
               right: 20.0,
               child: IconButton(
@@ -187,6 +187,23 @@ class TabIndicator extends StatelessWidget{
                   size: 15.0,
                   color: Colors.grey,
                   ),
+              )
+          ),
+          if(_currentTabIndex == 0) Positioned(
+              top: 0,
+              left: 20.0,
+              child: IconButton(
+                onPressed: () {
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => AboutPage())
+                  );
+                },
+                icon: Icon(
+                  FontAwesomeIcons.infoCircle,
+                  size: 20.0,
+                  color: Colors.grey,
+                ),
               )
           )
         ],
