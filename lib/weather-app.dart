@@ -7,6 +7,7 @@ import 'dart:convert';
 
 import './weather-data.dart';
 import './hourly-chart-canvas.dart';
+import './local-storage.dart';
 
 export 'weather-app.dart';
 
@@ -168,23 +169,27 @@ class WeatherApp extends StatefulWidget {
   WeatherApp (this.weatherData, this.locationDescription);
 
   @override
-  State<StatefulWidget> createState() => _WeatherAppState(weatherData, locationDescription);
+  State<StatefulWidget> createState() => _WeatherAppState();
 }
 
 class _WeatherAppState extends State<WeatherApp>{
   bool _isCelsius = true;
   int _hourOffset = 0;
-  static int timeOrigin;
-  static int timeOriginHour;
-  List<dynamic> selectedDataPath; // property chain, int for list, string for map
-  final WeatherData weatherData;
-  final String locationDescription;
+  int timeOrigin;
+  int timeOriginHour;
+  LocalStorage _localStorage = LocalStorage();
+  List<dynamic> selectedDataPath = ['currently']; // property chain, int for list, string for map
 
-  _WeatherAppState (this.weatherData, this.locationDescription)
-      : selectedDataPath = ['currently'] {
-    timeOrigin = weatherData.celsius()['currently'].time;
-//    timeOriginHour = DateTime.fromMillisecondsSinceEpoch(timeOrigin).hour == 0 ? 24 : DateTime.fromMillisecondsSinceEpoch(timeOrigin).hour;
+  @override
+  void initState() {
+    super.initState();
+    timeOrigin = widget.weatherData.celsius()['currently'].time;
     timeOriginHour = DateTime.fromMillisecondsSinceEpoch(timeOrigin).hour;
+    _localStorage.init((){
+      setState(() {
+        _isCelsius = _localStorage.getIsCelsius();
+      });
+    });
   }
 
   // only the selected data obj
@@ -199,7 +204,7 @@ class _WeatherAppState extends State<WeatherApp>{
 
   // All the data, unit converted
   Map getUnitConvertedData() {
-    return _isCelsius ? weatherData.celsius() : weatherData.fahrenheit();
+    return _isCelsius ? widget.weatherData.celsius() : widget.weatherData.fahrenheit();
   }
 
   void changeSelectedData(List<dynamic> newSelectedDataPath) {
@@ -213,9 +218,10 @@ class _WeatherAppState extends State<WeatherApp>{
     });
   }
 
-  void toggleUnit(bool isChangingToCelsius) {
+  void toggleUnit() {
     setState(() {
-      _isCelsius = isChangingToCelsius;
+      _localStorage.toggleIsCelsius();
+      _isCelsius = _localStorage.getIsCelsius();
     });
   }
 
@@ -230,7 +236,7 @@ class _WeatherAppState extends State<WeatherApp>{
   Widget build(BuildContext context) {
     return ListView(
       children: [
-        sectionWrapper(Header(getSelectedData(), locationDescription)),
+        sectionWrapper(Header(getSelectedData(), widget.locationDescription)),
         sectionWrapper(Summary(getSelectedData(), toggleUnit, _isCelsius)),
         sectionWrapper(HourlyChart(getUnitConvertedData()['hourly'], _hourOffset, _isCelsius, changeSelectedData, selectedDataPath)),
         sectionWrapper(DailyChart(getUnitConvertedData()['daily'], changeSelectedData))
@@ -279,7 +285,7 @@ class Summary extends StatelessWidget {
           height: 15.0,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30.0)),
           child: FlatButton(
-            onPressed: () => unitSwitcher(true),
+            onPressed: () => unitSwitcher(),
             padding: EdgeInsets.all(15.0),
             textColor: _isCelsius ? Colors.black : Colors.grey[400],
             child: Text('\u2103'), // c
@@ -291,7 +297,7 @@ class Summary extends StatelessWidget {
             height: 15.0,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30.0)),
             child: FlatButton(
-              onPressed: () => unitSwitcher(false),
+              onPressed: () => unitSwitcher(),
               padding: EdgeInsets.all(15.0),
               textColor: !_isCelsius ? Colors.black : Colors.grey[400],
               child: Text('\u2109'), //f

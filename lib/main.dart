@@ -3,6 +3,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 import './weather-app.dart';
 import './search.dart';
+import './local-storage.dart';
 
 void main() => runApp(MyApp());
 
@@ -25,14 +26,26 @@ class Tabs extends StatefulWidget {
 }
 class TabsState extends State<Tabs> with TickerProviderStateMixin{
   int _currentTabIndex = 1;
+  static int _reservedTabLength = 2;
   TabController _tabController;
-  final List<Map<String, double>> savedTabsList = [];
+  LocalStorage _localStorage = LocalStorage();
+  List<Map<String, double>> _savedCitiesList = [];
+
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(vsync: this, length: getTabLength(), initialIndex: 1);
     _tabController.addListener(setCurrentTabIndex);
+
+    _localStorage.init(() {
+      setState(() {
+        _savedCitiesList = _localStorage.getSavedCitiesList();
+        _tabController.dispose();
+        _tabController = TabController(vsync: this, length: getTabLength(), initialIndex: 1);
+        _tabController.addListener(setCurrentTabIndex);
+      });
+    });
   }
 
   @override
@@ -42,17 +55,17 @@ class TabsState extends State<Tabs> with TickerProviderStateMixin{
     super.dispose();
   }
 
-  void updateTabController() {
+  void updateTabController(bool isMoveToLastPage) {
     setState(() {
       _tabController.dispose();
       _tabController = TabController(vsync: this, length: getTabLength(), initialIndex: _currentTabIndex);
       _tabController.addListener(setCurrentTabIndex);
-      _tabController.animateTo(getTabLength() - 1, duration: Duration(seconds: 1));
+      if (isMoveToLastPage) _tabController.animateTo(getTabLength() - 1, duration: Duration(seconds: 1));
     });
   }
 
   int getTabLength() {
-    return 2 + savedTabsList.length;
+    return _reservedTabLength + _savedCitiesList.length;
   }
 
   void setCurrentTabIndex() {
@@ -62,17 +75,24 @@ class TabsState extends State<Tabs> with TickerProviderStateMixin{
 
   void addNewTab(double longitude, double latitude) {
     setState(() {
-      savedTabsList.add({
-        'latitude': latitude,
-        'longitude': longitude
-      });
-      updateTabController();
+      _localStorage.addToSavedCitiesList(latitude, longitude);
+      _savedCitiesList = _localStorage.getSavedCitiesList();
+      updateTabController(true);
+    });
+  }
+
+  void removeCurrentTab() {
+    setState(() {
+      _localStorage.removeFromSavedCitiesList(_currentTabIndex - _reservedTabLength);
+      _currentTabIndex -= 1;
+      _savedCitiesList = _localStorage.getSavedCitiesList();
+      updateTabController(false);
     });
   }
 
   List<Widget> buildSavedTabs() {
     final List<Widget> list = [];
-    savedTabsList.forEach((map) {
+    _savedCitiesList.forEach((map) {
       list.add(WeatherAppLoader(map['longitude'], map['latitude']));
     });
     return list;
@@ -98,10 +118,10 @@ class TabsState extends State<Tabs> with TickerProviderStateMixin{
           children: [
             SearchTab(addNewTab),
             WeatherAppLoader(null, null),
-            if (savedTabsList.length != 0) ...buildSavedTabs(),
+            if (_savedCitiesList.length != 0) ...buildSavedTabs(),
           ]
         ),
-        bottomNavigationBar: TabIndicator(getTabLength(), _currentTabIndex),
+        bottomNavigationBar: TabIndicator(getTabLength(), _currentTabIndex, removeCurrentTab),
       );
   }
 }
@@ -109,7 +129,8 @@ class TabsState extends State<Tabs> with TickerProviderStateMixin{
 class TabIndicator extends StatelessWidget{
   final int _tabLength;
   final int _currentTabIndex;
-  TabIndicator(this._tabLength, this._currentTabIndex);
+  final Function removeCurrentTab;
+  TabIndicator(this._tabLength, this._currentTabIndex, this.removeCurrentTab);
 
   Widget tabIcon(bool isActive, IconData icon) {
     return AnimatedOpacity(
@@ -140,14 +161,30 @@ class TabIndicator extends StatelessWidget{
       }
     }
 
-    return Container(
-      height: 50.0,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: _tabIcons,
-      )
-    );
+    return Stack(
+        children: <Widget>[
+          Container(
+            height: 50.0,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: _tabIcons,
+            ),
+          ),
+          if(_currentTabIndex > 1) Positioned(
+              top: 0,
+              right: 20.0,
+              child: IconButton(
+                onPressed: removeCurrentTab,
+                icon: Icon(
+                  FontAwesomeIcons.trash,
+                  size: 15.0,
+                  color: Colors.grey,
+                  ),
+              )
+          )
+        ],
+      );
   }
 }
 
