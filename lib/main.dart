@@ -86,14 +86,14 @@ class TabsState extends State<Tabs> with TickerProviderStateMixin{
   }
 
   void removeCurrentTab() {
-    if (isRemovingTab) return;
-      isRemovingTab = true;
-      _localStorage.removeFromSavedCitiesList(_tabController.index - _reservedTabLength);
-      _savedCitiesList = _localStorage.getSavedCitiesList();
-      _currentTabIndex--;
-      updateTabController(null);
-      isRemovingTabTimer = Timer(Duration(seconds: 1), () => setState(() => isRemovingTab = false));
-    }
+    if (isRemovingTab || _tabController.offset != 0.0) return;
+    isRemovingTab = true;
+    _localStorage.removeFromSavedCitiesList(_tabController.index - _reservedTabLength);
+    _savedCitiesList = _localStorage.getSavedCitiesList();
+    _currentTabIndex--;
+    updateTabController(null);
+    isRemovingTabTimer = Timer(Duration(seconds: 1), () => setState(() => isRemovingTab = false));
+  }
 
   List<Widget> buildSavedTabs() {
     final List<Widget> list = [];
