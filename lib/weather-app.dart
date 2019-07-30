@@ -519,6 +519,7 @@ class DailyChart extends StatelessWidget {
   static final double graphHeight = 120.0;
   static final double textHeight = 20.0;
   static final double iconHeight = 60.0;
+  static final double iconScaleFactor = 0.5;
   static final double borderPercentage = 0.2;
   //
 
@@ -553,8 +554,8 @@ class DailyChart extends StatelessWidget {
       child: Center(
         child: Container(
           child: wrappedWidget,
-          width: 0.7 * iconHeight,
-          height: 0.7 * iconHeight,
+          width: iconScaleFactor * iconHeight,
+          height: iconScaleFactor * iconHeight,
         ),
       ),
     );
@@ -633,7 +634,8 @@ class DailyChart extends StatelessWidget {
       padding: EdgeInsets.symmetric(horizontal: 10.0),
       child: Scrollbar(
         child: Container(
-          height: graphHeight,
+          padding: EdgeInsets.symmetric(vertical: 10.0),
+          height: graphHeight + 20.0,
           child: ListView.builder(
             itemCount: dailyDataList.length,
             scrollDirection: Axis.horizontal,
