@@ -20,6 +20,7 @@ class LocalStorage {
       cityObj['latitude'] = double.parse(savedCitiesLatitude[i]);
       cityObj['longitude'] = double.parse(savedCitiesLongitude[i]);
       savedCitiesList.add(cityObj);
+      cityObj = {};
     }
 
     return savedCitiesList;
