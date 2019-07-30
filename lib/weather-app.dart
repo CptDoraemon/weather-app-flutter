@@ -239,7 +239,7 @@ class _WeatherAppState extends State<WeatherApp>{
         sectionWrapper(Header(getSelectedData(), widget.locationDescription)),
         sectionWrapper(Summary(getSelectedData(), toggleUnit, _isCelsius)),
         sectionWrapper(HourlyChart(getUnitConvertedData()['hourly'], _hourOffset, _isCelsius, changeSelectedData, selectedDataPath)),
-        sectionWrapper(DailyChart(getUnitConvertedData()['daily'], changeSelectedData))
+        sectionWrapper(DailyChart(getUnitConvertedData()['daily'], changeSelectedData, selectedDataPath))
       ],
     );
   }
@@ -393,7 +393,8 @@ class _HourlyChartState extends State<HourlyChart> with TickerProviderStateMixin
     // actual hour tapped
     final whichHourTapped = widget._hourOffset + whichBlockTapped; // actual hour
     // shift to closest selectable hour
-    final whichHourTappedShifted = whichHourTapped % 3 < 1.5 ? (whichHourTapped ~/ 3) * 3 : (whichHourTapped ~/ 3 + 1) * 3;
+//    final whichHourTappedShifted = whichHourTapped % 3 < 1.5 ? (whichHourTapped ~/ 3) * 3 : (whichHourTapped ~/ 3 + 1) * 3;
+    final whichHourTappedShifted = (whichHourTapped ~/ 3) * 3;
     if (whichHourTapped <= 48) widget.changeSelectedData(['hourly', whichHourTappedShifted]);
   }
 
@@ -509,7 +510,17 @@ class _HourlyChartState extends State<HourlyChart> with TickerProviderStateMixin
 class DailyChart extends StatelessWidget {
   final List<WeatherDataObject> dailyDataList;
   final Function selectedDataSwitcher;
-  DailyChart(this.dailyDataList, this.selectedDataSwitcher);
+  final List<dynamic> selectedDataPath;
+  DailyChart(this.dailyDataList, this.selectedDataSwitcher, this.selectedDataPath);
+
+  //
+  static final double borderWidth = 2.0;
+  static final double graphWidth = 90.0;
+  static final double graphHeight = 120.0;
+  static final double textHeight = 20.0;
+  static final double iconHeight = 60.0;
+  static final double borderPercentage = 0.2;
+  //
 
   Widget temperatureHighNLow(String temperatureHigh, String temperatureLow) {
     return Row(
@@ -525,40 +536,95 @@ class DailyChart extends StatelessWidget {
     return SvgPicture.asset(
         'assets/weather-icons/$iconName.svg',
         color: Colors.red,
-        semanticsLabel: iconName
+        semanticsLabel: iconName,
     );
   }
   Widget dayGraphColumnTextItemContainer(Widget wrappedWidget) {
     return Container(
-      padding: EdgeInsets.symmetric(vertical: 5.0),
+      height: textHeight,
+      width: graphWidth,
       child: wrappedWidget,
     );
   }
   Widget dayGraphColumnImageItemContainer(Widget wrappedWidget) {
     return Container(
-      height: 50.0,
-      padding: EdgeInsets.symmetric(vertical: 5.0),
-      child: wrappedWidget,
-    );
-  }
-  Widget dayGraphWidget(WeatherDataObject dailyDataObject, int index) {
-    List<dynamic> pathList = ['daily', index];
-    return ButtonTheme(
-      minWidth: 80.0,
-      height: 80.0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30.0)),
-      child: FlatButton(
-        onPressed: () => selectedDataSwitcher(pathList),
-        padding: EdgeInsets.all(10.0),
-        child: Column(
-          children: [
-            dayGraphColumnTextItemContainer(Text(dailyDataObject.weekdayShort)),
-            dayGraphColumnImageItemContainer(weatherIcon(dailyDataObject.icon)),
-            dayGraphColumnTextItemContainer(temperatureHighNLow(dailyDataObject.temperatureHigh.toString(), dailyDataObject.temperatureLow.toString())),
-          ],
-        )
+      height: iconHeight,
+      width: graphWidth,
+      child: Center(
+        child: Container(
+          child: wrappedWidget,
+          width: 0.7 * iconHeight,
+          height: 0.7 * iconHeight,
+        ),
       ),
     );
+  }
+
+  Widget dayGraphWidget(WeatherDataObject dailyDataObject, int index) {
+    List<dynamic> pathList = ['daily', index];
+    return Container(
+      width: graphWidth,
+      height: graphHeight,
+      decoration: BoxDecoration(border: Border.all(width: borderWidth, color: Colors.white)),
+      child: ButtonTheme(
+        minWidth: graphWidth,
+        height: graphHeight,
+        child: FlatButton(
+            onPressed: () => selectedDataSwitcher(pathList),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisSize: MainAxisSize.max,
+              children: [
+                dayGraphColumnTextItemContainer(Text(dailyDataObject.weekdayShort, textAlign: TextAlign.center,)),
+                dayGraphColumnImageItemContainer(weatherIcon(dailyDataObject.icon)),
+                dayGraphColumnTextItemContainer(temperatureHighNLow(dailyDataObject.temperatureHigh.toString(), dailyDataObject.temperatureLow.toString())),
+              ],
+            )
+        ),
+      )
+    );
+  }
+
+  Widget dayGraphSelectedWidget(WeatherDataObject dailyDataObject, int index) {
+    return Stack(
+        children: <Widget>[
+          dayGraphWidget(dailyDataObject, index),
+          Positioned(
+            top: 0,
+            left: 0,
+            child: Container(
+              width: graphWidth,
+              height: graphHeight,
+              decoration: BoxDecoration(
+                  border: Border.all(color: Colors.red[200], width: borderWidth)
+              ),
+            ),
+          ),
+          Positioned(
+            top: 0,
+            left: borderPercentage * graphWidth,
+            child: Container(
+              width: (1 - 2 * borderPercentage) * graphWidth,
+              height: graphHeight,
+              decoration: BoxDecoration(
+                  border: Border.all(color: Colors.white, width: borderWidth)
+              ),
+            ),
+          ),
+          Positioned(
+            top: borderPercentage * graphHeight,
+            left: 0,
+            child: Container(
+              width: graphWidth,
+              height: (1 - 2 * borderPercentage) * graphHeight,
+              decoration: BoxDecoration(
+                  border: Border.all(color: Colors.white, width: borderWidth)
+              ),
+            ),
+          ),
+        ],
+      );
   }
 
   @override
@@ -567,12 +633,14 @@ class DailyChart extends StatelessWidget {
       padding: EdgeInsets.symmetric(horizontal: 10.0),
       child: Scrollbar(
         child: Container(
-          height: 130.0,
+          height: graphHeight,
           child: ListView.builder(
             itemCount: dailyDataList.length,
             scrollDirection: Axis.horizontal,
             itemBuilder: (context, index) {
-              return dayGraphWidget(dailyDataList[index], index);
+              return selectedDataPath[0] == 'daily' && selectedDataPath[1] == index ?
+                dayGraphSelectedWidget(dailyDataList[index], index) :
+                dayGraphWidget(dailyDataList[index], index);
             },
           ),
         ),

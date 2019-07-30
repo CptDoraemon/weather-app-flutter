@@ -16,7 +16,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Weather by Xiaoxihome',
       home: Tabs(),
-      theme: ThemeData(primaryColor: Colors.white),
+      theme: ThemeData(primaryColor: Colors.white, backgroundColor: Colors.white),
     );
   }
 }
@@ -118,6 +118,7 @@ class TabsState extends State<Tabs> with TickerProviderStateMixin{
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+        backgroundColor: Theme.of(context).backgroundColor,
         appBar: blankAppBar(),
         body: TabBarView(
           controller: _tabController,

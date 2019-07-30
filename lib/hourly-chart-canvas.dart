@@ -30,7 +30,7 @@ class MyChartDrawingTools {
   }
 
   void drawLegends(Canvas canvas, String topLegendText, String bottomLegendText, double safeWidth, Offset topLegendPosition, Offset bottomLegendPosition, List<dynamic> selectedDataPath, int index) {
-    final bool isSelected = (selectedDataPath[0] == 'hourly' && selectedDataPath[1] == index) ? true : false;
+    final bool isSelected = (selectedDataPath[0] == 'hourly' && selectedDataPath[1] == index);
     // top data text,
     final TextStyle topDataTextStyle = TextStyle(
         color: isSelected ? Colors.black : Colors.grey,
@@ -93,10 +93,13 @@ class TemperaturePainter extends CustomPainter with MyChartDrawingTools{
       ..color = Colors.orange
       ..strokeWidth = 2.0;
     final Paint rectPaint = Paint()
-      ..color = Colors.orange[300];
+      ..color = Colors.orange[200];
+    final Paint rectPaintSelected = Paint()
+      ..color = Colors.orange[500];
     final double hourlyWidth = size.width / 24;
 
     for (int i = 0; i < hourlyDataList.length; i++) {
+      bool isSelected = (selectedDataPath[0] == 'hourly' && i - selectedDataPath[1] < 3 && i - selectedDataPath[1] >= 0);
       bool isLast = i == hourlyDataList.length - 1;
       double thisY = getOffsetY(
           bottomReservedHeight, drawableHeight, range, min,
@@ -117,7 +120,7 @@ class TemperaturePainter extends CustomPainter with MyChartDrawingTools{
       path.lineTo(nextX, nextY); //RT
       path.lineTo(nextX, topReservedHeight + drawableHeight); //RB
       path.close();
-      canvas.drawPath(path, rectPaint);
+      isSelected ? canvas.drawPath(path, rectPaintSelected) : canvas.drawPath(path, rectPaint);
       // text drawing on every third hour
       if (i % 3 == 0) {
         drawLegends(
@@ -169,11 +172,13 @@ class PrecipitationPainter extends CustomPainter with MyChartDrawingTools{
       ..color = Colors.blue
       ..strokeWidth = 2.0;
     final Paint rectPaint = Paint()
-      ..color = Colors.blue[300];
+      ..color = Colors.blue[200];
+    final Paint rectSelectedPaint = Paint()
+      ..color = Colors.blue[500];
     final double hourlyWidth = size.width / 24;
 
     for (int i=0; i<hourlyDataList.length; i++) {
-      //bool isLast = i == hourlyDataList.length - 1;
+      bool isSelected = (selectedDataPath[0] == 'hourly' && i - selectedDataPath[1] < 3 && i - selectedDataPath[1] >= 0);
       double thisY = getOffsetY(hourlyDataList[i].precipitation , drawableHeight, bottomReservedHeight);
       double nextY = thisY;
       double thisX = i * hourlyWidth;
@@ -189,7 +194,7 @@ class PrecipitationPainter extends CustomPainter with MyChartDrawingTools{
       path.lineTo(nextX, nextY); //RT
       path.lineTo(nextX, topReservedHeight + drawableHeight); //RB
       path.close();
-      canvas.drawPath(path, rectPaint);
+      isSelected ? canvas.drawPath(path, rectSelectedPaint) : canvas.drawPath(path, rectPaint);
       // text drawing on every third hour
       if (i % 3 == 0) {
         drawLegends(
@@ -247,11 +252,9 @@ class WindPainter extends CustomPainter with MyChartDrawingTools{
     final double drawableHeight = size.height - topReservedHeight - bottomReservedHeight;
     //
     final double hourlyWidth = size.width / 24;
-    final Paint pathPaint = Paint()
-      ..color = Colors.green
-      ..strokeWidth = 2.0;
 
     for (int i=0; i<hourlyDataList.length; i+=3) {
+      bool isSelected = (selectedDataPath[0] == 'hourly' && i - selectedDataPath[1] < 3 && i - selectedDataPath[1] >= 0);
       // draw wind on every third hour
       double thisX = i * hourlyWidth;
       double thisY = 0.5 * size.height;
@@ -281,12 +284,16 @@ class WindPainter extends CustomPainter with MyChartDrawingTools{
       canvas.translate(-textCenterOffsetX, -textCenterOffsetY);
       //
       final TextStyle directionStyle = TextStyle(
+        color: Colors.green[400],
+        fontSize: iconSize,
+      );
+      final TextStyle directionSelectedStyle = TextStyle(
         color: Colors.green,
         fontSize: iconSize,
-//        backgroundColor: Colors.black
+        fontWeight: FontWeight.bold
       );
       final TextPainter directionPainter = TextPainter(
-        text: TextSpan(text: 'A', style: directionStyle),
+        text: TextSpan(text: 'A', style: isSelected ? directionSelectedStyle : directionStyle),
         textAlign: TextAlign.start,
         textDirection: TextDirection.ltr,
       )
