@@ -205,7 +205,9 @@ class _SearchTabState extends State<SearchTab> {
       padding: paddingY,
       child: Container(
         height: 20.0,
-        child: Text(text),
+        child: Center(
+          child: Text(text),
+        ),
       ),
     );
   }
