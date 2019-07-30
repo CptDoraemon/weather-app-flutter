@@ -1,7 +1,7 @@
 # Weather App
 
-written with Flutter/Dart.
-Web version: https://github.com/CptDoraemon/weather
+written with Flutter/Dart.<br/>
+Web version: https://github.com/CptDoraemon/weather<br/>
 Web version live demo: https://cptdoraemon.github.io/weather/
 
 ## Screenshots:
