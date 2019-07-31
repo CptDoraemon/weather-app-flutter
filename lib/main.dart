@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:flutter/services.dart';
 import 'dart:async';
 
 import './weather-app.dart';
@@ -7,7 +8,14 @@ import './search.dart';
 import './local-storage.dart';
 import './about.dart';
 
-void main() => runApp(MyApp());
+void main() {
+  SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
+    systemNavigationBarColor: Colors.grey[100],
+    systemNavigationBarIconBrightness: Brightness.dark,// navigation bar color
+    statusBarColor: Colors.transparent, // status bar color
+  ));
+  runApp(MyApp());
+}
 
 class MyApp extends StatelessWidget {
 
@@ -106,7 +114,7 @@ class TabsState extends State<Tabs> with TickerProviderStateMixin{
 
   Widget blankAppBar() {
     return PreferredSize(
-      preferredSize: Size.fromHeight(10.0),
+      preferredSize: Size(0.0, 0.0),
       child: AppBar(
         toolbarOpacity: 0.0,
         backgroundColor: Colors.transparent,
